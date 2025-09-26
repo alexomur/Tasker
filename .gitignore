@@ -1,0 +1,41 @@
+# Build artifacts
+bin/
+obj/
+out/
+TestResults/
+*.log
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider / IntelliJ IDEA
+.idea/
+*.iml
+.idea_modules/
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/httpRequests/
+
+# VSCode (если вдруг используешь)
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+*.snupkg
+project.lock.json
+artifacts/
+
+# Secrets
+*.env
+secrets.json
+
+# Docker
+docker-compose.override.yml
