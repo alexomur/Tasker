@@ -11,7 +11,7 @@ public class TaskerDbContext : DbContext
     
     public DbSet<Column> Columns => Set<Column>();
     
-    public DbSet<Card> Card => Set<Card>();
+    public DbSet<Card> Cards => Set<Card>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
