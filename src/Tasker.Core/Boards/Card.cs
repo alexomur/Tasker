@@ -1,5 +1,3 @@
-using Tasker.Core.Common;
-
 namespace Tasker.Core.Boards;
 
 public class Card : Entity

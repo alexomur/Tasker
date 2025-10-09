@@ -1,4 +1,4 @@
-namespace Tasker.Core.Common;
+namespace Tasker.Core;
 
 public abstract class Entity
 {
