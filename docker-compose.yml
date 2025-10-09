@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: pg-tasker
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tasker_admin
+      POSTGRES_PASSWORD: dev123
+      POSTGRES_DB: tasker
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-tasker-data:/var/lib/postgresql/data
+
+volumes:
+  pg-tasker-data: 

@@ -16,6 +16,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+var conn = builder.Configuration.GetConnectionString("TaskerDb");
+builder.Services.AddDbContext<TaskerDbContext>(options =>
+    options.UseNpgsql(conn));
+
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
@@ -35,6 +39,8 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast")
 .WithOpenApi();
+
+app.MapGet("/Api/IsAlive", () => true);
 
 app.Run();
 
