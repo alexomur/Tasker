@@ -13,4 +13,10 @@ public class BoardsController : MediatorControllerBase
     {
         
     }
+
+    [HttpGet]
+    public async Task<IActionResult> Get()
+    {
+        return Ok("Got sum");
+    }
 }
