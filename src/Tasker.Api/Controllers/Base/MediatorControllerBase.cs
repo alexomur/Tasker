@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Tasker.Application.Commands.Boards.GetBoardById;
 using Tasker.Application.Common;
 using Tasker.Application.DTOs;
 
@@ -44,15 +45,20 @@ public abstract class MediatorControllerBase : ControllerBase
         return parsedId;
     }
 
-    protected async Task<IActionResult> ExecuteCommand(IRequest<Result<BaseResponseDto>> command, CancellationToken ct = default)
+    protected async Task<IActionResult> ExecuteCommand<TCommand, TResponse>(TCommand command)
     {
         if (command is null)
         {
             return Problem(detail: "Request is null.");
         }
 
-        var result = await _mediator.Send(command, ct);
+        var resultRaw = await _mediator.Send(command);
 
+        if (resultRaw is not Result<TResponse> result)
+        {
+            return BadRequest(new { Message = "Response is invalid." });
+        }
+        
         if (!result.IsSuccess)
         {
             return Problem(detail: result.Error);

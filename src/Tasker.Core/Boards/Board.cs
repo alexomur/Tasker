@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Tasker.Core.Extensions;
 
 namespace Tasker.Core.Boards;
@@ -183,7 +186,19 @@ public class Board : Entity
             return false;
         }
 
-        // Owner > Admin > Member > Viewer
         return member.Role <= requiredRole ? true : false;
+    }
+
+    public void UpdateDetails(string title, string? description)
+    {
+        var normalized = StringExtensions.Cleared(title);
+        if (string.IsNullOrEmpty(normalized))
+        {
+            throw new ArgumentException("Board title cannot be empty.", nameof(title));
+        }
+
+        Title = normalized;
+
+        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
     }
 }

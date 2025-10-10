@@ -1,11 +1,13 @@
 ﻿using MediatR;
 using Tasker.Application.Common;
 using Tasker.Application.DTOs;
+using Tasker.Application.DTOs.Boards;
+using Tasker.Application.Mappers;
 using Tasker.Core.Boards;
 
 namespace Tasker.Application.Commands.Boards.CreateBoard;
 
-public class CreateBoardHandler : IRequestHandler<CreateBoardCommand, Result<BaseResponseDto>>
+public class CreateBoardHandler : IRequestHandler<CreateBoardCommand, Result<BoardDto?>>
 {
     private readonly IBoardRepository _boardRepository;
 
@@ -14,22 +16,18 @@ public class CreateBoardHandler : IRequestHandler<CreateBoardCommand, Result<Bas
         _boardRepository = boardRepository;
     }
 
-    public async Task<Result<BaseResponseDto>> Handle(CreateBoardCommand? request, CancellationToken ct)
+    public async Task<Result<BoardDto?>> Handle(CreateBoardCommand? request, CancellationToken cancellationToken)
     {
         if (request == null)
         {
-            return Result.Fail<BaseResponseDto>("Request is null.");
+            return Result.Fail<BoardDto?>("Request is null.");
         }
 
         var board = new Board(request.Title, request.Description);
 
-        var created = await _boardRepository.AddAsync(board, ct);
+        var created = await _boardRepository.AddAsync(board, cancellationToken);
+        
 
-        var response = new BaseResponseDto()
-        {
-            Message = "Board created"
-        };
-
-        return Result.Ok(response);
+        return Result.Ok<BoardDto?>(new BoardsMapper().ToDto(created));
     }
 }
