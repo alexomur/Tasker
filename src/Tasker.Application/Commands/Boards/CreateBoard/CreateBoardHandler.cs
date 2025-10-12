@@ -25,9 +25,9 @@ public class CreateBoardHandler : IRequestHandler<CreateBoardCommand, Result<Boa
 
         var board = new Board(request.Title, request.Description);
 
-        var created = await _boardRepository.AddAsync(board, cancellationToken);
+        var savedBoard = await _boardRepository.AddAsync(board, cancellationToken);
         
 
-        return Result.Ok<BoardDto?>(new BoardsMapper().ToDto(created));
+        return Result.Ok<BoardDto?>(new BoardsMapper().ToDto(savedBoard));
     }
 }
