@@ -1,0 +1,51 @@
+﻿@page "/"
+@inject IHttpClientFactory HttpFactory
+
+<h2>Добро пожаловать в Tasker</h2>
+
+<p>Минимальный фронтенд. Нажмите кнопку, чтобы проверить доступность API.</p>
+
+<button class="btn" @onclick="CheckApi">Check API</button>
+
+@if (IsChecking)
+{
+<p>Проверка API...</p>
+}
+else if (ApiMessage is not null)
+{
+<p>@ApiMessage</p>
+}
+
+@code {
+    private bool IsChecking;
+    private string? ApiMessage;
+
+    private async Task CheckApi()
+    {
+        IsChecking = true;
+        ApiMessage = null;
+
+        try
+        {
+            var client = HttpFactory.CreateClient("api");
+            var result = await client.GetFromJsonAsync<bool>("Api/IsAlive");
+            if (result)
+            {
+                ApiMessage = "API доступен — OK.";
+            }
+            else
+            {
+                ApiMessage = "API ответил, но вернул false.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ApiMessage = $"Ошибка при обращении к API: {ex.Message}";
+        }
+        finally
+        {
+            IsChecking = false;
+        }
+    }
+
+}
