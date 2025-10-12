@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   db:
     image: postgres:16
@@ -11,6 +13,32 @@ services:
       - "5432:5432"
     volumes:
       - pg-tasker-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tasker_admin -d tasker || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Tasker.Api/Dockerfile
+    image: tasker-api:latest
+    container_name: tasker-api
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "5188:80"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__TaskerDb: "Host=db;Port=5432;Database=tasker;Username=tasker_admin;Password=dev123"
+    networks:
+      - tasker-net
 
 volumes:
-  pg-tasker-data: 
+  pg-tasker-data:
+
+networks:
+  tasker-net:
+    driver: bridge
