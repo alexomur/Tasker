@@ -8,11 +8,11 @@ namespace Tasker.Application.Commands.Columns.CreateColumn;
 
 public class CreateColumnHandler : IRequestHandler<CreateColumnCommand, Result<ColumnDto?>>
 {
-    private readonly IColumnRepository _columnRepository;
+    private readonly IBoardRepository _boardRepository;
 
-    public CreateColumnHandler(IColumnRepository columnRepository)
+    public CreateColumnHandler(IBoardRepository boardRepository)
     {
-        _columnRepository = columnRepository;
+        _boardRepository = boardRepository;
     }
 
     public async Task<Result<ColumnDto?>> Handle(CreateColumnCommand? request, CancellationToken cancellationToken)
@@ -22,10 +22,12 @@ public class CreateColumnHandler : IRequestHandler<CreateColumnCommand, Result<C
             return Result.Fail<ColumnDto?>("Request is null");
         }
         
-        var column = new Column(request.Title, request.Description);
-        
-        var savedColumn = await _columnRepository.AddAsync(column, cancellationToken);
+        var column = await _boardRepository.AddColumnAsync(
+            request.BoardId,
+            request.Title,
+            request.Description,
+            cancellationToken);
 
-        return Result.Ok<ColumnDto?>(new ColumnsMapper().ToDto(savedColumn));
+        return Result.Ok<ColumnDto?>(new ColumnsMapper().ToDto(column));
     }
 }

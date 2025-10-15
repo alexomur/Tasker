@@ -4,7 +4,7 @@ using Tasker.Application.DTOs.Boards;
 using Tasker.Application.Mappers;
 using Tasker.Core.Boards;
 
-namespace Tasker.Application.Commands.Boards.GetAllBoards;
+namespace Tasker.Application.Queries.Boards.GetAllBoards;
 
 public class GetAllBoardsHandler : IRequestHandler<GetAllBoardsCommand, Result<List<BoardDto>>>
 {
@@ -24,18 +24,6 @@ public class GetAllBoardsHandler : IRequestHandler<GetAllBoardsCommand, Result<L
 
         var boardEntities = await _boardRepository.ListAllAsync(cancellationToken);
 
-        if (boardEntities == null)
-        {
-            return Result.Fail<List<BoardDto>>("Failed to load boards.");
-        }
-
-        var mapper = new BoardsMapper();
-
-        var dtos = boardEntities
-            .Select(b => mapper.ToDto(b))
-            .Where(dto => dto != null)
-            .ToList();
-
-        return Result.Ok(dtos);
+        return Result.Ok(new BoardsMapper().ToDtoList(boardEntities));
     }
 }

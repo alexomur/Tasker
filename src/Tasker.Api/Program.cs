@@ -11,6 +11,7 @@ using Tasker.Data.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("TaskerDb");
+Console.WriteLine($"[CFG] TaskerDb = {builder.Configuration.GetConnectionString("TaskerDb")}");
 
 builder.Services.AddDbContext<TaskerDbContext>(options =>
     options.UseNpgsql(connectionString));

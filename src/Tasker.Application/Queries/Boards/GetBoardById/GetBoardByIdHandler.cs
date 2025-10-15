@@ -1,11 +1,10 @@
 using MediatR;
 using Tasker.Application.Common;
-using Tasker.Application.DTOs;
 using Tasker.Application.DTOs.Boards;
 using Tasker.Application.Mappers;
 using Tasker.Core.Boards;
 
-namespace Tasker.Application.Commands.Boards.GetBoardById;
+namespace Tasker.Application.Queries.Boards.GetBoardById;
 
 public class GetBoardByIdHandler : IRequestHandler<GetBoardByIdCommand, Result<BoardDto?>>
 {

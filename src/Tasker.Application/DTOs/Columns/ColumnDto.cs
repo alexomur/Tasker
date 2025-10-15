@@ -1,3 +1,5 @@
-﻿namespace Tasker.Application.DTOs.Columns;
+﻿using Tasker.Application.DTOs.Cards;
 
-public record ColumnDto(Guid Id, string Title, string? Description);
+namespace Tasker.Application.DTOs.Columns;
+
+public sealed record ColumnDto(Guid Id, string Title, string? Description, List<CardDto> Cards);

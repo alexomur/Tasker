@@ -27,14 +27,14 @@ services:
     container_name: tasker-api
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "5188:80"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:80
       ConnectionStrings__TaskerDb: "Host=db;Port=5432;Database=tasker;Username=tasker_admin;Password=dev123"
-    networks:
-      - tasker-net
 
 volumes:
   pg-tasker-data:

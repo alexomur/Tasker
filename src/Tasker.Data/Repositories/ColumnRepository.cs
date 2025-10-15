@@ -9,7 +9,7 @@ public class ColumnRepository : Repository<Column>, IColumnRepository
     {
     }
 
-    public async Task<IReadOnlyList<Column>> ListByBoardIdAsync(Guid boardId, CancellationToken ct = default)
+    public async  Task<IReadOnlyList<Column>> ListByBoardIdAsync(Guid boardId, CancellationToken ct = default)
     {
         var columns = await _db.Columns
             .AsNoTracking()

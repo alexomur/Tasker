@@ -13,4 +13,8 @@ public interface IBoardRepository : IRepository<Board>
     Task<Card> MoveCardAsync(Guid boardId, Guid cardId, Guid toColumnId, int? insertIndex = null, CancellationToken ct = default);
 
     Task<bool> RemoveCardAsync(Guid boardId, Guid cardId, CancellationToken ct = default);
+    
+    Task<Column> AddColumnAsync(Guid boardId, string title, string? description = null, CancellationToken ct = default);
+    
+    Task<bool> RemoveColumnAsync(Guid boardId, Guid columnId, CancellationToken ct = default);
 }

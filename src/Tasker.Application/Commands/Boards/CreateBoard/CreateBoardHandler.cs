@@ -1,6 +1,5 @@
 ﻿using MediatR;
 using Tasker.Application.Common;
-using Tasker.Application.DTOs;
 using Tasker.Application.DTOs.Boards;
 using Tasker.Application.Mappers;
 using Tasker.Core.Boards;

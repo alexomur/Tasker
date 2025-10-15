@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Tasker.Data;
@@ -11,9 +12,11 @@ using Tasker.Data;
 namespace Tasker.Data.Migrations
 {
     [DbContext(typeof(TaskerDbContext))]
-    partial class TaskerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251015173448_AddColumnCardOrdering")]
+    partial class AddColumnCardOrdering
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

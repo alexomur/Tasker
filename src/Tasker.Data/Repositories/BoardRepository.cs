@@ -1,8 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Tasker.Core.Boards;
 
 namespace Tasker.Data.Repositories;
@@ -108,16 +104,33 @@ public class BoardRepository : Repository<Board>, IBoardRepository
 
     public async Task<Column> AddColumnAsync(Guid boardId, string title, string? description = null, CancellationToken ct = default)
     {
-        var board = await GetByIdWithGraphAsync(boardId, ct)
-                    ?? throw new KeyNotFoundException($"Board {boardId} not found");
+        var boardExists = await _db.Boards
+            .AsNoTracking()
+            .AnyAsync(b => b.Id == boardId, ct);
 
-        var column = board.AddColumn(title, description);
+        if (!boardExists)
+        {
+            throw new KeyNotFoundException($"Board {boardId} not found");
+        }
+
+        var column = new Column(title, description);
         if (column.Id == Guid.Empty)
         {
             column.Id = Guid.NewGuid();
         }
 
+        _db.Entry(column).Property("BoardId").CurrentValue = boardId;
+
+        var nextOrder = await _db.Columns
+            .AsNoTracking()
+            .Where(c => EF.Property<Guid>(c, "BoardId") == boardId)
+            .CountAsync(ct);
+
+        _db.Entry(column).Property("OrderIndex").CurrentValue = nextOrder;
+
+        await _db.Columns.AddAsync(column, ct);
         await _db.SaveChangesAsync(ct);
+
         return column;
     }
 

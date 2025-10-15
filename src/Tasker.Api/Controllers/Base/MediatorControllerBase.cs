@@ -1,7 +1,6 @@
 ﻿using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Tasker.Application.Commands.Boards.GetBoardById;
 using Tasker.Application.Common;
 using Tasker.Application.DTOs;
 

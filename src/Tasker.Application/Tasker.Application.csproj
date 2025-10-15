@@ -16,4 +16,9 @@
       <ProjectReference Include="..\Tasker.Core\Tasker.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Commands\Cards\" />
+      <Folder Include="Queries\Boards\Cards\" />
+    </ItemGroup>
+
 </Project>

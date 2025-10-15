@@ -1,3 +1,5 @@
-﻿namespace Tasker.Application.DTOs.Boards;
+﻿using Tasker.Application.DTOs.Columns;
 
-public record BoardDto(Guid Id, string Title, string? Description);
+namespace Tasker.Application.DTOs.Boards;
+
+public sealed record BoardDto(Guid Id, string Title, string? Description, List<ColumnDto> Columns);
