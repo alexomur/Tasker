@@ -60,7 +60,7 @@ public abstract class MediatorControllerBase : ControllerBase
         
         if (!result.IsSuccess)
         {
-            return Problem(detail: result.Error);
+            return Problem(result.Error, null, (int)result.StatusCode);
         }
 
         var payload = result.Value;
