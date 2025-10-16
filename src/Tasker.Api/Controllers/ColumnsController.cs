@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Tasker.Api.Controllers.Base;
 using Tasker.Application.Commands.Columns.CreateColumn;
+using Tasker.Application.Commands.Columns.DeleteColumn;
+using Tasker.Application.DTOs;
 using Tasker.Application.DTOs.Columns;
 using Tasker.Application.Queries.Columns.GetAllColumnsByBoardId;
 
@@ -24,4 +26,8 @@ public class ColumnsController : MediatorControllerBase
     [HttpPost("Create")]
     public async Task<IActionResult> Create([FromRoute] Guid boardId, [FromQuery] string title, [FromQuery] string? description)
         => await ExecuteCommand<CreateColumnCommand, ColumnDto?>(new CreateColumnCommand(boardId, title, description));
+
+    [HttpDelete("{columnId:guid}/Delete")]
+    public async Task<IActionResult> Delete([FromRoute] Guid boardId, [FromRoute] Guid columnId)
+        => await ExecuteCommand<DeleteColumnCommand, BaseResponseDto>(new DeleteColumnCommand(boardId, columnId));
 }
