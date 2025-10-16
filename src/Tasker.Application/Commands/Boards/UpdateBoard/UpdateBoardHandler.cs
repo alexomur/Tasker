@@ -20,25 +20,20 @@ public class UpdateBoardHandler : IRequestHandler<UpdateBoardCommand, Result<Bas
     {
         if (request == null)
         {
-            return Result.Fail<BaseResponseDto>("Request is null.");
+            return Result.BadRequest<BaseResponseDto>("Request is null");
         }
 
         var boardEntity = await _boardRepository.GetByIdWithGraphAsync(request.BoardId, cancellationToken);
 
         if (boardEntity == null)
         {
-            return Result.NotFound<BaseResponseDto>("Board not found.");
+            return Result.NotFound<BaseResponseDto>("Board not found");
         }
 
         boardEntity.UpdateDetails(request.Title, request.Description);
 
         await _boardRepository.UpdateAsync(boardEntity, cancellationToken);
 
-        var response = new BaseResponseDto
-        {
-            Message = "Board updated."
-        };
-
-        return Result.Ok(response);
+        return Result.Ok("Board updated");
     }
 }

@@ -25,19 +25,37 @@ public class Result
         return new Result(true, HttpStatusCode.OK);
     }
 
-    public static Result Fail(string error, HttpStatusCode statusCode = HttpStatusCode.BadRequest, string? errorCode = null)
+    public static Result<BaseResponseDto> Ok(string message)
+    {
+        return Ok(new BaseResponseDto()
+        {
+            Message = message
+        });
+    }
+
+    public static Result<T> Ok<T>(T value, HttpStatusCode statusCode = HttpStatusCode.OK)
+    {
+        return Result<T>.Ok(value, statusCode);
+    }
+
+    public static Result BadRequest(string error, HttpStatusCode statusCode = HttpStatusCode.BadRequest, string? errorCode = null)
     {
         return new Result(false, statusCode, error, errorCode);
     }
-
-    public static Result ValidationFailed(IReadOnlyDictionary<string, string[]> errors)
+    
+    public static Result<T> BadRequest<T>(string error, HttpStatusCode statusCode = HttpStatusCode.BadRequest, string? errorCode = null)
     {
-        return new Result(false, HttpStatusCode.BadRequest, "Validation failed.", "validation_failed", errors);
+        return Result<T>.Fail(error, statusCode, errorCode);
     }
 
     public static Result NotFound(string? message = null)
     {
         return new Result(false, HttpStatusCode.NotFound, message ?? "Not found.");
+    }
+
+    public static Result<T> NotFound<T>(string? message = null)
+    {
+        return Result<T>.NotFound(message);
     }
 
     public static Result Unauthorized(string? message = null)
@@ -53,26 +71,6 @@ public class Result
     public static Result InternalError(string? message = null)
     {
         return new Result(false, HttpStatusCode.InternalServerError, message ?? "Internal server error.");
-    }
-    
-    public static Result<T> Fail<T>(string error, HttpStatusCode statusCode = HttpStatusCode.BadRequest, string? errorCode = null)
-    {
-        return Result<T>.Fail(error, statusCode, errorCode);
-    }
-
-    public static Result<T> Ok<T>(T value, HttpStatusCode statusCode = HttpStatusCode.OK)
-    {
-        return Result<T>.Ok(value, statusCode);
-    }
-
-    public static Result<T> Created<T>(T value)
-    {
-        return Result<T>.Created(value);
-    }
-
-    public static Result<T> NotFound<T>(string? message = null)
-    {
-        return Result<T>.NotFound(message);
     }
 }
 

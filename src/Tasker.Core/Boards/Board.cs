@@ -50,9 +50,9 @@ public class Board : Entity
         return column;
     }
 
-    public Column? GetColumn(Guid id)
+    public Column? GetColumn(Guid columnId)
     {
-        return _columns.FirstOrDefault(c => c.Id == id);
+        return _columns.FirstOrDefault(c => c.Id == columnId);
     }
 
     public Column? UpdateColumn(Guid id, string? title = null, string? description = null)
@@ -87,9 +87,9 @@ public class Board : Entity
         return column;
     }
 
-    public bool RemoveColumn(Guid id)
+    public bool RemoveColumn(Guid columnId)
     {
-        var col = GetColumn(id);
+        var col = GetColumn(columnId);
         if (col is null)
         {
             return false;

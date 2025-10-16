@@ -19,7 +19,7 @@ public class GetBoardByIdHandler : IRequestHandler<GetBoardByIdCommand, Result<B
     {
         if (request == null)
         {
-            return Result.Fail<BoardDto?>("Request is null.");
+            return Result.BadRequest<BoardDto?>("Request is null.");
         }
 
         var board = await _boardRepository.GetByIdWithGraphNoTrackingAsync(request.BoardId, cancellationToken);

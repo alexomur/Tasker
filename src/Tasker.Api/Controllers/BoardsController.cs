@@ -25,18 +25,18 @@ public class BoardsController : MediatorControllerBase
         => await ExecuteCommand<GetAllBoardsCommand, List<BoardDto>>(new GetAllBoardsCommand());
 
     [HttpGet("{boardId:guid}")]
-    public async Task<IActionResult> Get(Guid boardId)
+    public async Task<IActionResult> Get([FromRoute] Guid boardId)
         => await ExecuteCommand<GetBoardByIdCommand, BoardDto?>(new GetBoardByIdCommand(boardId));
 
     [HttpPost("Create")]
     public async Task<IActionResult> CreateBoard([FromQuery] string title, [FromQuery] string? description)
         => await ExecuteCommand<CreateBoardCommand, BoardDto>(new CreateBoardCommand(title, description));
 
-    [HttpPut("{boardId:guid}/Update")]
-    public async Task<IActionResult> UpdateBoard(Guid boardId, [FromQuery] string title, [FromQuery] string? description)
+    [HttpPatch("{boardId:guid}/Update")]
+    public async Task<IActionResult> UpdateBoard([FromRoute] Guid boardId, [FromQuery] string title, [FromQuery] string? description)
         => await ExecuteCommand<UpdateBoardCommand, BaseResponseDto>(new UpdateBoardCommand(boardId, title, description));
 
     [HttpDelete("{boardId:guid}/Delete")]
-    public async Task<IActionResult> DeleteBoard(Guid boardId)
+    public async Task<IActionResult> DeleteBoard([FromRoute] Guid boardId)
         => await ExecuteCommand<DeleteBoardCommand, BaseResponseDto>(new DeleteBoardCommand(boardId));
 }

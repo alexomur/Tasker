@@ -19,7 +19,7 @@ public class CreateColumnHandler : IRequestHandler<CreateColumnCommand, Result<C
     {
         if (request is null)
         {
-            return Result.Fail<ColumnDto?>("Request is null");
+            return Result.BadRequest<ColumnDto?>("Request is null");
         }
         
         var column = await _boardRepository.AddColumnAsync(

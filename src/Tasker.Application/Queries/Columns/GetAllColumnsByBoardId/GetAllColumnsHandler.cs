@@ -19,7 +19,7 @@ public class GetAllColumnsHandler : IRequestHandler<GetAllColumnsCommand, Result
     {
         if (request is null)
         {
-            return Result.Fail<List<ColumnDto>>("Request is null.");
+            return Result.BadRequest<List<ColumnDto>>("Request is null.");
         }
 
         var columnEntities = await _columnRepository.ListByBoardIdAsync(request.BoardId, cancellationToken);

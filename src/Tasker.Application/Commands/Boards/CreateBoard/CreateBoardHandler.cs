@@ -19,7 +19,7 @@ public class CreateBoardHandler : IRequestHandler<CreateBoardCommand, Result<Boa
     {
         if (request == null)
         {
-            return Result.Fail<BoardDto?>("Request is null.");
+            return Result.BadRequest<BoardDto?>("Request is null.");
         }
 
         var board = new Board(request.Title, request.Description);

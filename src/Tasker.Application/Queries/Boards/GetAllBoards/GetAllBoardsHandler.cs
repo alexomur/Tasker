@@ -19,7 +19,7 @@ public class GetAllBoardsHandler : IRequestHandler<GetAllBoardsCommand, Result<L
     {
         if (request == null)
         {
-            return Result.Fail<List<BoardDto>>("Request is null.");
+            return Result.BadRequest<List<BoardDto>>("Request is null.");
         }
 
         var boardEntities = await _boardRepository.ListAllAsync(cancellationToken);

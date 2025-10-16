@@ -18,7 +18,7 @@ public class DeleteBoardHandler : IRequestHandler<DeleteBoardCommand, Result<Bas
     {
         if (request == null)
         {
-            return Result.Fail<BaseResponseDto>("Request is null.");
+            return Result.BadRequest<BaseResponseDto>("Request is null.");
         }
 
         var boardEntity = await _boardRepository.GetByIdWithGraphAsync(request.BoardId, cancellationToken);
@@ -35,6 +35,6 @@ public class DeleteBoardHandler : IRequestHandler<DeleteBoardCommand, Result<Bas
             Message = "Board deleted."
         };
 
-        return Result.Ok(response);
+        return Result.Ok("Board deleted");
     }
 }
