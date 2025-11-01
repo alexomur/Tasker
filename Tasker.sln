@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tasker.Contracts", "src\con
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "building-blocks", "building-blocks", "{AFE10B25-6F09-419E-95FB-38E2E51D19D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tasker.BuildingBlocks", "src\building-blocks\Tasker.BuildingBlocks\Tasker.BuildingBlocks.csproj", "{40D896F6-00DF-4E64-8324-3F0079277637}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tasker.Shared.Kernel", "src\building-blocks\Tasker.Shared.Kernel\Tasker.Shared.Kernel.csproj", "{40D896F6-00DF-4E64-8324-3F0079277637}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "services", "services", "{C549A181-3A69-409D-962C-AED0C6A92FE6}"
 EndProject

@@ -3,7 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Tasker.BoardWrite.Domain\Tasker.BoardWrite.Domain.csproj" />
     <ProjectReference Include="..\..\..\contracts\Tasker.Contracts\Tasker.Contracts.csproj" />
-    <ProjectReference Include="..\..\..\building-blocks\Tasker.BuildingBlocks\Tasker.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\..\building-blocks\Tasker.Shared.Kernel\Tasker.Shared.Kernel.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
