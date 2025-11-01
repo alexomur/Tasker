@@ -1,0 +1,14 @@
+﻿global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: "aspnet-apis"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - auth-api:8080
+          - boardread-api:8080
+          - boardwrite-api:8080
+          - projector-api:8080
+          - outbox-api:8080
