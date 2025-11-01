@@ -1,0 +1,13 @@
+﻿<Project>
+    <ItemGroup>
+        <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+        <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
+        <PackageVersion Include="Confluent.Kafka" Version="2.4.0" />
+        <PackageVersion Include="CassandraCSharpDriver" Version="3.20.1" />
+        <PackageVersion Include="StackExchange.Redis" Version="2.7.33" />
+        <PackageVersion Include="Serilog.AspNetCore" Version="8.0.1" />
+        <PackageVersion Include="Serilog.Sinks.Console" Version="5.0.1" />
+        <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.8.1" />
+        <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
+    </ItemGroup>
+</Project>

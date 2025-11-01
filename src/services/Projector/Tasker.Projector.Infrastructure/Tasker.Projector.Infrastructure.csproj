@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tasker.Projector.Application\Tasker.Projector.Application.csproj" />
+    <ProjectReference Include="..\Tasker.Projector.Domain\Tasker.Projector.Domain.csproj" />
+    <ProjectReference Include="..\..\..\building-blocks\Tasker.BuildingBlocks\Tasker.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

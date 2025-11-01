@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tasker.Auth.Domain\Tasker.Auth.Domain.csproj" />
+    <ProjectReference Include="..\..\..\contracts\Tasker.Contracts\Tasker.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\building-blocks\Tasker.BuildingBlocks\Tasker.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
