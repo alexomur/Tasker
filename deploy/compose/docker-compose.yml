@@ -18,6 +18,24 @@ services:
       - mysql_data:/var/lib/mysql
     ports:
       - "3306:3306"
+  cassandra:
+    image: cassandra:4.1
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data1:/var/lib/cassandra
+    environment:
+      - CASSANDRA_CLUSTER_NAME=${CASSANDRA_CLUSTER_NAME}
+      - CASSANDRA_DC=${CASSANDRA_DC}
+      - CASSANDRA_RACK=${CASSANDRA_RACK}
+      - CASSANDRA_SEEDS=${CASSANDRA_SEEDS}
+      - MAX_HEAP_SIZE=${CASSANDRA_DEV_MAX_HEAP_SIZE}
+      - HEAP_NEWSIZE=${CASSANDRA_DEV_HEAP_NEWSIZE}
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "nodetool status | grep -qE '^UN\\b'"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
   
   redis:
     image: redis
@@ -54,6 +72,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "5002:8080"
+    depends_on:
+      cassandra:
+        condition: service_healthy
     
   boardwrite-api:
     build:
@@ -95,12 +116,6 @@ services:
       - prometheus_data:/prometheus
     ports:
       - "9090:9090"
-    depends_on: 
-      - auth-api
-      - boardread-api
-      - boardwrite-api
-      - projector-api
-      - outbox-api
   
   
   grafana:
@@ -124,3 +139,4 @@ volumes:
   mysql_data: {}
   prometheus_data: {}
   grafana_data: {}
+  cassandra_data1: {}
