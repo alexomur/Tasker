@@ -1,5 +1,35 @@
 ﻿name: tasker
 services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DB}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+  
+  redis:
+    image: redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    
   auth-api:
     build:
       context: ../../
@@ -9,7 +39,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "5001:8080"
-    networks: [appnet]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+        
   boardread-api:
     build:
       context: ../../
@@ -19,7 +54,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "5002:8080"
-    networks: [appnet]
+    
   boardwrite-api:
     build:
       context: ../../
@@ -29,7 +64,10 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "5003:8080"
-    networks: [appnet]
+    depends_on:
+      mysql:
+        condition: service_healthy
+  
   projector-api:
     build:
       context: ../../
@@ -39,7 +77,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "5004:8080"
-    networks: [appnet]
+  
   outbox-api:
     build:
       context: ../../
@@ -49,21 +87,21 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "5005:8080"
-    networks: [appnet]
   
   prometheus:
     image: prom/prometheus:latest
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     ports:
       - "9090:9090"
-    networks: [appnet]
     depends_on: 
       - auth-api
       - boardread-api
       - boardwrite-api
       - projector-api
       - outbox-api
+  
   
   grafana:
     image: grafana/grafana:latest
@@ -73,9 +111,16 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     ports: 
     - "3000:3000"
-    networks: [appnet]
     depends_on:
       - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
 
 networks:
-  appnet: {}
+  default:
+    name: appnet
+    driver: bridge
+volumes:
+  mysql_data: {}
+  prometheus_data: {}
+  grafana_data: {}
