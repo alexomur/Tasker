@@ -1,4 +1,4 @@
-﻿namespace Tasker.BuildingBlocks;
+﻿namespace Tasker.Shared.Kernel;
 
 public class Class1
 {

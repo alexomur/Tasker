@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>Tasker.BuildingBlocks</RootNamespace>
+    <RootNamespace>Tasker.Shared.Kernel</RootNamespace>
   </PropertyGroup>
 
 </Project>
