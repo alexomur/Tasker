@@ -9,9 +9,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "contracts", "contracts", "{
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tasker.Contracts", "src\contracts\Tasker.Contracts\Tasker.Contracts.csproj", "{CBA7DDBF-6380-40B0-A80D-A33B0DA26D2A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "building-blocks", "building-blocks", "{AFE10B25-6F09-419E-95FB-38E2E51D19D0}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{AFE10B25-6F09-419E-95FB-38E2E51D19D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tasker.Shared.Kernel", "src\building-blocks\Tasker.Shared.Kernel\Tasker.Shared.Kernel.csproj", "{40D896F6-00DF-4E64-8324-3F0079277637}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tasker.Shared.Kernel", "src\shared\Tasker.Shared.Kernel\Tasker.Shared.Kernel.csproj", "{40D896F6-00DF-4E64-8324-3F0079277637}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "services", "services", "{C549A181-3A69-409D-962C-AED0C6A92FE6}"
 EndProject
@@ -69,7 +69,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ui", "Ui", "{CD23043A-5031-
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tasker.Ui.Blazor", "src\services\Ui\Tasker.Ui.Blazor\Tasker.Ui.Blazor.csproj", "{BC190079-CB7B-4681-AE3B-462F30D77814}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tasker.Messaging.Kafka", "src\building-blocks\Tasker.Messaging.Kafka\Tasker.Messaging.Kafka.csproj", "{F116007E-E770-4986-9813-812102C8E665}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tasker.Shared.Kafka", "src\shared\Tasker.Shared.Kafka\Tasker.Shared.Kafka.csproj", "{F116007E-E770-4986-9813-812102C8E665}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

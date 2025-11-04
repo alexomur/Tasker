@@ -17,7 +17,7 @@
     <PackageReference Include="Serilog.Sinks.Console" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\building-blocks\Tasker.Messaging.Kafka\Tasker.Messaging.Kafka.csproj" />
+    <ProjectReference Include="..\..\..\shared\Tasker.Shared.Kafka\Tasker.Shared.Kafka.csproj" />
     <ProjectReference Include="..\Tasker.Auth.Application\Tasker.Auth.Application.csproj" />
     <ProjectReference Include="..\Tasker.Auth.Infrastructure\Tasker.Auth.Infrastructure.csproj" />
   </ItemGroup>

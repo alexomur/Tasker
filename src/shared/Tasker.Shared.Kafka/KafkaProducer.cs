@@ -1,9 +1,9 @@
 ﻿using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Tasker.Messaging.Kafka.Interfaces;
+using Tasker.Shared.Kafka.Interfaces;
 
-namespace Tasker.Messaging.Kafka;
+namespace Tasker.Shared.Kafka;
 
 internal class KafkaProducer : IEventProducer, IDisposable
 {

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using Serilog;
-using Tasker.Messaging.Kafka.Extensions;
+using Tasker.Shared.Kafka.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 

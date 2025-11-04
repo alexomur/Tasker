@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Tasker.Messaging.Kafka.Interfaces;
+using Tasker.Shared.Kafka.Interfaces;
 
-namespace Tasker.Messaging.Kafka.Extensions;
+namespace Tasker.Shared.Kafka.Extensions;
 
 public static class ServerCollectionExtensions
 {

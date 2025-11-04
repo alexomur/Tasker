@@ -1,4 +1,4 @@
-﻿namespace Tasker.Messaging.Kafka;
+﻿namespace Tasker.Shared.Kafka;
 
 public sealed class KafkaOptions
 {

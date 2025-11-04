@@ -1,4 +1,4 @@
-﻿namespace Tasker.Messaging.Kafka.Interfaces;
+﻿namespace Tasker.Shared.Kafka.Interfaces;
 
 public interface IEventConsumerHandler
 {
