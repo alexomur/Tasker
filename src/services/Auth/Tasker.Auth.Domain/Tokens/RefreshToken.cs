@@ -49,12 +49,12 @@ public sealed class RefreshToken
 
     public bool IsActive(DateTimeOffset now) => RevokedAt is null && ExpiresAt > now;
 
-    public void Revoke(DateTimeOffset now)
+    public void Revoke(DateTimeOffset revokedAt)
     {
         if (RevokedAt is not null)
         {
             return;
         }
-        RevokedAt = now;
+        RevokedAt = revokedAt;
     }
 }

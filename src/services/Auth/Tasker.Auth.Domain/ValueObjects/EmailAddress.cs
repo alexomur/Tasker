@@ -56,7 +56,7 @@ public readonly record struct EmailAddress
     {
         try
         {
-            email = EmailAddress.Create(raw ?? "");
+            email = Create(raw ?? "");
             return true;
         }
         catch (Exception)
@@ -69,4 +69,6 @@ public readonly record struct EmailAddress
     public override string ToString() => Value;
     
     public static explicit operator string(EmailAddress email) => email.Value;
+    
+    public static implicit operator EmailAddress(string raw) => Create(raw);
 }

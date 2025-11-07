@@ -132,7 +132,7 @@ public class User : Entity
         AddEvent(new UserPasswordChanged(Id, changeAt));
     }
     
-    public void Lock(string reason, DateTimeOffset now)
+    public void Lock(string reason, DateTimeOffset lockedAt)
     {
         if (IsLocked)
         {
@@ -140,13 +140,13 @@ public class User : Entity
         }
 
         IsLocked = true;
-        LockedAt = now;
+        LockedAt = lockedAt;
         LockReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
-        UpdatedAt = now;
-        AddEvent(new UserLocked(Id, LockReason, now));
+        UpdatedAt = lockedAt;
+        AddEvent(new UserLocked(Id, LockReason, lockedAt));
     }
 
-    public void Unlock(DateTimeOffset now)
+    public void Unlock(DateTimeOffset unlockedAt)
     {
         if (!IsLocked)
         {
@@ -156,7 +156,7 @@ public class User : Entity
         IsLocked = false;
         LockedAt = null;
         LockReason = null;
-        UpdatedAt = now;
-        AddEvent(new UserUnlocked(Id, now));
+        UpdatedAt = unlockedAt;
+        AddEvent(new UserUnlocked(Id, unlockedAt));
     }
 }
