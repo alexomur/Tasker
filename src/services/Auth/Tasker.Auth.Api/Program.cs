@@ -1,9 +1,13 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using Serilog;
+using Tasker.Auth.Application.Abstractions.Persistence;
+using Tasker.Auth.Infrastructure;
+using Tasker.Auth.Infrastructure.Persistence;
 using Tasker.Shared.Kafka.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +32,18 @@ builder.Services
         .AddPrometheusExporter());
 
 builder.Services.AddKafkaCore(builder.Configuration);
+
+var conn = builder.Configuration.GetConnectionString("Auth")
+           ?? builder.Configuration["ConnectionStrings:Auth"] 
+           ?? "Server=mysql;Port=3306;Database=tasker;User=tasker;Password=dev;TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;";
+builder.Services.AddDbContext<AuthDbContext>(opt =>
+{
+    opt.UseMySql(conn, ServerVersion.AutoDetect(conn),
+        mySql => mySql.MigrationsHistoryTable("__EFMigrationsHistory", schema: null));
+});
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 var app = builder.Build();
 
@@ -73,5 +89,16 @@ app.MapHealthChecks("/readyz", new HealthCheckOptions {
 
 app.MapGet("/healthz/quick", () => Results.Ok(new { status = "ok" }))
     .WithTags("system");
+
+static bool IsEfDesignTime() =>
+    AppDomain.CurrentDomain.GetAssemblies()
+        .Any(a => a.FullName?.StartsWith("Microsoft.EntityFrameworkCore.Design", StringComparison.OrdinalIgnoreCase) == true);
+
+if (!IsEfDesignTime())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+    db.Database.Migrate();
+}
 
 app.Run();

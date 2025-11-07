@@ -17,7 +17,6 @@ services:
       start_period: 20s
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./deploy/compose/mysql/zzz-skip-nameresolve.cnf:/etc/mysql/conf.d/zzz-skip-nameresolve.cnf:ro
     ports:
       - "3306:3306"
   cassandra:
@@ -80,6 +79,7 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
       - KAFKA__BROKERS=redpanda:9092
+      - ConnectionStrings__Auth=Server=mysql;Port=3306;Database=tasker;User=tasker;Password=dev;TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;
     ports:
       - "5001:8080"
     depends_on:
