@@ -24,11 +24,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).ValueGeneratedNever();
 
-        // Email VO
         b.Property(x => x.Email)
             .HasConversion(_emailConverter)
-            .HasMaxLength(320) // RFC, с запасом
+            .HasMaxLength(320)
             .IsRequired();
+
+        b.HasIndex(x => x.Email).IsUnique();
 
         b.Property(x => x.DisplayName)
             .HasMaxLength(64)
@@ -68,8 +69,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         b.Property(x => x.LockReason)
             .HasMaxLength(256);
         
-        // Индексы
-        b.HasIndex(x => x.Email).IsUnique();
         b.HasIndex(x => x.DisplayName);
     }
 }

@@ -5,9 +5,15 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using Serilog;
+using StackExchange.Redis;
 using Tasker.Auth.Application.Abstractions.Persistence;
+using Tasker.Auth.Application.Abstractions.Security;
+using Tasker.Auth.Application.Abstractions.Sessions;
+using Tasker.Auth.Application.Users.Commands.RegisterUser;
 using Tasker.Auth.Infrastructure;
 using Tasker.Auth.Infrastructure.Persistence;
+using Tasker.Auth.Infrastructure.Security;
+using Tasker.Auth.Infrastructure.Sessions;
 using Tasker.Shared.Kafka.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,6 +50,21 @@ builder.Services.AddDbContext<AuthDbContext>(opt =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+builder.Services.AddControllers();
+
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssemblies(typeof(RegisterUserCommand).Assembly);
+});
+
+var redisConn = builder.Configuration["Redis:Connection"] ?? "redis:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConn));
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IAuthSessionStore, RedisAuthSessionStore>();
 
 var app = builder.Build();
 
@@ -89,6 +110,8 @@ app.MapHealthChecks("/readyz", new HealthCheckOptions {
 
 app.MapGet("/healthz/quick", () => Results.Ok(new { status = "ok" }))
     .WithTags("system");
+
+app.MapControllers();
 
 static bool IsEfDesignTime() =>
     AppDomain.CurrentDomain.GetAssemblies()

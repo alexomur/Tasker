@@ -25,7 +25,7 @@ public class AuthDbContext : DbContext
         
         var dtoToUtc = new ValueConverter<DateTimeOffset, DateTime>(
             v => v.UtcDateTime,
-            v => DateTime.SpecifyKind(v, DateTimeKind.Utc)
+            v => new DateTimeOffset(DateTime.SpecifyKind(v, DateTimeKind.Utc), TimeSpan.Zero)
         );
 
         modelBuilder.ApplyConfiguration(new UserConfiguration(emailConverter, dtoToUtc));

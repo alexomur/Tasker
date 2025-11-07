@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Tasker.Auth.Application.Abstractions.Persistence;
 using Tasker.Auth.Domain.Users;
+using Tasker.Auth.Domain.ValueObjects;
 
 namespace Tasker.Auth.Infrastructure.Persistence;
 
@@ -16,21 +17,24 @@ public class UserRepository : IUserRepository
     public Task<User?> GetUserByIdAsync(Guid userId, CancellationToken cancellationToken)
     {
         return _db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+    }public async Task<bool> ExistUserByEmailAsync(string email, CancellationToken ct)
+    {
+        var vo = EmailAddress.Create(email);
+        return await _db.Users.AsNoTracking()
+            .AnyAsync(u => u.Email == vo, ct);
     }
 
-    public Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken)
+    public Task<User?> GetUserByEmailAsync(string email, CancellationToken ct)
     {
-        return _db.Users.FirstOrDefaultAsync(u => u.Email.Value == email, cancellationToken);
+        var vo = EmailAddress.Create(email);
+        return _db.Users
+            .SingleOrDefaultAsync(u => u.Email == vo, ct);
     }
 
-    public Task<bool> ExistUserByEmailAsync(string email, CancellationToken cancellationToken)
+    public async Task AddUserAsync(User user, CancellationToken ct)
     {
-        return _db.Users.AnyAsync(u => u.Email.Value == email, cancellationToken);
+        await _db.Users.AddAsync(user, ct);
     }
-
-    public Task AddUserAsync(User user, CancellationToken cancellationToken)
-    {
-        _db.Users.AddAsync(user, cancellationToken);
-        return Task.CompletedTask;
-    }
+    
+    public void AddUser(User user) => _db.Users.Add(user);
 }
