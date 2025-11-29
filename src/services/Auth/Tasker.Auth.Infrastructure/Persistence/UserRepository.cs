@@ -17,7 +17,9 @@ public class UserRepository : IUserRepository
     public Task<User?> GetUserByIdAsync(Guid userId, CancellationToken cancellationToken)
     {
         return _db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-    }public async Task<bool> ExistUserByEmailAsync(string email, CancellationToken ct)
+    }
+    
+    public async Task<bool> ExistUserByEmailAsync(string email, CancellationToken ct)
     {
         var vo = EmailAddress.Create(email);
         return await _db.Users.AsNoTracking()

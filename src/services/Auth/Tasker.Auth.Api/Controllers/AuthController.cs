@@ -6,7 +6,7 @@ using Tasker.Auth.Application.Users.Commands.RegisterUser;
 namespace Tasker.Auth.Api.Controllers;
 
 [ApiController]
-[Route("auth")]
+[Route("api/v1/auth")]
 public sealed class AuthController : ControllerBase
 {
     private readonly IMediator _mediator;
