@@ -36,11 +36,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired();
 
         b.Property(x => x.PasswordHash)
-            .HasMaxLength(256) // под свой формат хеша
+            .HasMaxLength(256)
             .IsRequired();
 
         b.Property(x => x.EmailConfirmed)
-            .HasColumnType("tinyint(1)") // TreatTinyAsBoolean=true, но явное не вредит
+            .HasColumnType("tinyint(1)")
             .IsRequired();
 
         b.Property(x => x.IsLocked)

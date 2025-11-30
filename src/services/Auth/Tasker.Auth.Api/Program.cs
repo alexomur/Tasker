@@ -15,6 +15,7 @@ using Tasker.Auth.Infrastructure.Persistence;
 using Tasker.Auth.Infrastructure.Security;
 using Tasker.Auth.Infrastructure.Sessions;
 using Tasker.Shared.Kafka.Extensions;
+using Tasker.Shared.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,6 +66,11 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IAuthSessionStore, RedisAuthSessionStore>();
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<AppExceptionFilter>();
+});
 
 var app = builder.Build();
 
