@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\Tasker.Shared.Kernel\Tasker.Shared.Kernel.csproj" />
+  </ItemGroup>
+
 </Project>
