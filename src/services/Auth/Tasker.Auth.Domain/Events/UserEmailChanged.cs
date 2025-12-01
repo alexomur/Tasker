@@ -1,4 +1,4 @@
-﻿using Tasker.Auth.Domain.Abstractions;
+﻿using Tasker.Shared.Kernel.Abstractions;
 
 namespace Tasker.Auth.Domain.Events;
 

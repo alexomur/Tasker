@@ -1,4 +1,4 @@
-﻿namespace Tasker.Auth.Domain.Abstractions;
+﻿namespace Tasker.Shared.Kernel.Abstractions;
 
 public interface IDomainEvent
 {

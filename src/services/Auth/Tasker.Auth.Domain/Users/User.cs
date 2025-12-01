@@ -1,6 +1,6 @@
-﻿using Tasker.Auth.Domain.Abstractions;
-using Tasker.Auth.Domain.Events;
+﻿using Tasker.Auth.Domain.Events;
 using Tasker.Auth.Domain.ValueObjects;
+using Tasker.Shared.Kernel.Abstractions;
 
 namespace Tasker.Auth.Domain.Users;
 
