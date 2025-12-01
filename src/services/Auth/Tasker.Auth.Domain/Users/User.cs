@@ -6,8 +6,6 @@ namespace Tasker.Auth.Domain.Users;
 
 public class User : Entity
 {
-    public Guid Id { get; private set; }
-
     public EmailAddress Email { get; private set; } = default!;
     
     public string DisplayName { get; private set; } = null!;
@@ -30,9 +28,8 @@ public class User : Entity
     
     private User() { }
 
-    private User(Guid id, EmailAddress email, string displayName, string passwordHash, DateTimeOffset createdAt)
+    private User(EmailAddress email, string displayName, string passwordHash, DateTimeOffset createdAt)
     {
-        Id = id;
         Email = email;
         DisplayName = displayName;
         PasswordHash = passwordHash;
@@ -60,7 +57,7 @@ public class User : Entity
         }
         
         var email = EmailAddress.Create(emailRaw);
-        var user = new User(Guid.NewGuid(), email, displayName.Trim(), passwordHash, createdAt);
+        var user = new User(email, displayName.Trim(), passwordHash, createdAt);
         user.AddEvent(new UserRegistered(user.Id, email.Value, displayName.Trim(), createdAt));
         return user;
     }

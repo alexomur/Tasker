@@ -1,4 +1,4 @@
-namespace Tasker.Auth.Application.Abstractions.Persistence;
+namespace Tasker.Shared.Kernel.Abstractions;
 
 public interface IUnitOfWork
 {

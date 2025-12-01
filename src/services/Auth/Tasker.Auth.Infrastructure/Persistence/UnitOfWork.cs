@@ -1,4 +1,5 @@
 using Tasker.Auth.Application.Abstractions.Persistence;
+using Tasker.Shared.Kernel.Abstractions;
 
 namespace Tasker.Auth.Infrastructure.Persistence;
 

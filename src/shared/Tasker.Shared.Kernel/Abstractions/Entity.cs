@@ -2,6 +2,13 @@ namespace Tasker.Shared.Kernel.Abstractions;
 
 public abstract class Entity
 {
+    public Guid Id { get; private set; }
+
+    protected Entity()
+    {
+        Id = Guid.NewGuid();
+    }
+    
     private readonly List<IDomainEvent> _domainEvents = new();
     
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();

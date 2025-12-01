@@ -4,6 +4,7 @@ using Tasker.Auth.Application.Abstractions.Persistence;
 using Tasker.Auth.Application.Abstractions.Security;
 using Tasker.Auth.Domain.Errors;
 using Tasker.Auth.Domain.Users;
+using Tasker.Shared.Kernel.Abstractions;
 
 namespace Tasker.Auth.Application.Users.Commands.RegisterUser;
 

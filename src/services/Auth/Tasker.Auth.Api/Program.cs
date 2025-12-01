@@ -15,6 +15,7 @@ using Tasker.Auth.Infrastructure.Persistence;
 using Tasker.Auth.Infrastructure.Security;
 using Tasker.Auth.Infrastructure.Sessions;
 using Tasker.Shared.Kafka.Extensions;
+using Tasker.Shared.Kernel.Abstractions;
 using Tasker.Shared.Web;
 
 var builder = WebApplication.CreateBuilder(args);
