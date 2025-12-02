@@ -3,13 +3,14 @@ using Tasker.Shared.Kernel.Abstractions;
 namespace Tasker.BoardWrite.Domain.Boards;
 
 /// <summary>
-/// Доска с колонками, участниками и метками, представляющая один рабочий процесс.
+/// Доска с колонками, участниками, метками и карточками, представляющая один рабочий процесс.
 /// </summary>
 public sealed class Board : Entity
 {
     private readonly List<Column> _columns = new();
     private readonly List<BoardMember> _members = new();
     private readonly List<Label> _labels = new();
+    private readonly List<Card> _cards = new();
 
     /// <summary>
     /// Название доски, отображаемое пользователям.
@@ -55,6 +56,11 @@ public sealed class Board : Entity
     /// Коллекция меток, доступных для карточек на этой доске.
     /// </summary>
     public IReadOnlyCollection<Label> Labels => _labels.AsReadOnly();
+
+    /// <summary>
+    /// Коллекция всех карточек данной доски. Позиционирование по колонкам определяется свойством ColumnId у карточки.
+    /// </summary>
+    public IReadOnlyCollection<Card> Cards => _cards.AsReadOnly();
 
     protected Board() { }
 
@@ -131,9 +137,7 @@ public sealed class Board : Entity
     public void Archive(DateTimeOffset now)
     {
         if (IsArchived)
-        {
             return;
-        }
 
         IsArchived = true;
         Touch(now);
@@ -146,9 +150,7 @@ public sealed class Board : Entity
     public void Restore(DateTimeOffset now)
     {
         if (!IsArchived)
-        {
             return;
-        }
 
         IsArchived = false;
         Touch(now);
@@ -163,14 +165,10 @@ public sealed class Board : Entity
     public BoardMember AddMember(Guid userId, BoardMemberRole role, DateTimeOffset now)
     {
         if (userId == Guid.Empty)
-        {
             throw new ArgumentException("Идентификатор пользователя не может быть пустым.", nameof(userId));
-        }
 
         if (_members.Any(m => m.UserId == userId && m.IsActive))
-        {
             throw new InvalidOperationException("Пользователь уже является участником доски.");
-        }
 
         var member = new BoardMember(boardId: Id, userId, role, now);
         _members.Add(member);
@@ -188,14 +186,10 @@ public sealed class Board : Entity
     {
         var member = _members.FirstOrDefault(m => m.UserId == userId && m.IsActive);
         if (member is null)
-        {
             return;
-        }
 
         if (member.Role == BoardMemberRole.Owner)
-        {
             throw new InvalidOperationException("Нельзя удалить владельца доски.");
-        }
 
         member.Leave(now);
         Touch(now);
@@ -230,9 +224,7 @@ public sealed class Board : Entity
     {
         var column = _columns.FirstOrDefault(c => c.Id == columnId);
         if (column is null)
-        {
             throw new InvalidOperationException("Колонка не найдена на доске.");
-        }
 
         column.Reorder(newOrder, now);
         Touch(now);
@@ -251,12 +243,114 @@ public sealed class Board : Entity
         return label;
     }
 
+    /// <summary>
+    /// Создаёт новую карточку в указанной колонке данной доски.
+    /// </summary>
+    /// <param name="columnId">Идентификатор колонки, в которую добавляется карточка.</param>
+    /// <param name="title">Заголовок карточки.</param>
+    /// <param name="createdByUserId">Идентификатор пользователя, создавшего карточку.</param>
+    /// <param name="now">Текущее время в формате UTC.</param>
+    /// <param name="description">Подробное описание карточки, может быть пустым или null.</param>
+    /// <param name="dueDate">Дедлайн, может отсутствовать.</param>
+    public Card CreateCard(
+        Guid columnId,
+        string title,
+        Guid createdByUserId,
+        DateTimeOffset now,
+        string? description = null,
+        DateTimeOffset? dueDate = null)
+    {
+        var column = _columns.FirstOrDefault(c => c.Id == columnId);
+        if (column is null)
+            throw new InvalidOperationException("Колонка не найдена на доске.");
+
+        var nextOrder = _cards
+            .Where(c => c.ColumnId == columnId)
+            .Select(c => c.Order)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        var card = Card.Create(
+            boardId: Id,
+            columnId: columnId,
+            title: title,
+            createdByUserId: createdByUserId,
+            order: nextOrder,
+            now: now,
+            description: description,
+            dueDate: dueDate);
+
+        _cards.Add(card);
+        Touch(now);
+
+        return card;
+    }
+
+    /// <summary>
+    /// Перемещает карточку в другую колонку (или внутри той же колонки) с указанным порядком.
+    /// </summary>
+    /// <param name="cardId">Идентификатор карточки.</param>
+    /// <param name="targetColumnId">Идентификатор целевой колонки.</param>
+    /// <param name="targetOrder">
+    /// Желаемая позиция карточки в целевой колонке. 
+    /// Если не указано — карточка будет добавлена в конец.
+    /// </param>
+    /// <param name="now">Текущее время в формате UTC.</param>
+    public void MoveCard(Guid cardId, Guid targetColumnId, int? targetOrder, DateTimeOffset now)
+    {
+        var card = _cards.FirstOrDefault(c => c.Id == cardId && c.Id == Id);
+        if (card is null)
+            throw new InvalidOperationException("Карточка не найдена на доске.");
+
+        var targetColumn = _columns.FirstOrDefault(c => c.Id == targetColumnId);
+        if (targetColumn is null)
+            throw new InvalidOperationException("Целевая колонка не найдена на доске.");
+
+        var order = targetOrder ?? _cards
+            .Where(c => c.ColumnId == targetColumnId)
+            .Select(c => c.Order)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        card.MoveToColumn(targetColumnId, order, now);
+        Touch(now);
+    }
+
+    /// <summary>
+    /// Изменяет порядок карточки внутри её колонки.
+    /// </summary>
+    /// <param name="cardId">Идентификатор карточки.</param>
+    /// <param name="newOrder">Новый порядок карточки в колонке.</param>
+    /// <param name="now">Текущее время в формате UTC.</param>
+    public void ReorderCard(Guid cardId, int newOrder, DateTimeOffset now)
+    {
+        var card = _cards.FirstOrDefault(c => c.Id == cardId && c.Id == Id);
+        if (card is null)
+            throw new InvalidOperationException("Карточка не найдена на доске.");
+
+        card.Reorder(newOrder, now);
+        Touch(now);
+    }
+
+    /// <summary>
+    /// Удаляет карточку с доски.
+    /// </summary>
+    /// <param name="cardId">Идентификатор карточки.</param>
+    /// <param name="now">Текущее время в формате UTC.</param>
+    public void RemoveCard(Guid cardId, DateTimeOffset now)
+    {
+        var card = _cards.FirstOrDefault(c => c.Id == cardId && c.Id == Id);
+        if (card is null)
+            return;
+
+        _cards.Remove(card);
+        Touch(now);
+    }
+
     private void SetTitle(string title)
     {
         if (string.IsNullOrWhiteSpace(title))
-        {
             throw new ArgumentException("Название доски не может быть пустым.", nameof(title));
-        }
 
         Title = title.Trim();
     }

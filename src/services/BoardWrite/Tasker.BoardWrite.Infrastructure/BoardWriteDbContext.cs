@@ -1,56 +1,41 @@
+using System;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tasker.BoardWrite.Domain.Boards;
 
 namespace Tasker.BoardWrite.Infrastructure;
 
-/// <summary>
-/// Контекст базы данных для записи домена досок (BoardWrite).
-/// Содержит наборы сущностей и конфигурацию сопоставления с MySQL.
-/// </summary>
 public class BoardWriteDbContext : DbContext
 {
-    /// <summary>
-    /// Набор досок, являющихся корневыми агрегатами.
-    /// </summary>
-    public DbSet<Board> Boards => Set<Board>();
-
-    /// <summary>
-    /// Набор колонок, принадлежащих доскам.
-    /// </summary>
-    public DbSet<Column> Columns => Set<Column>();
-
-    /// <summary>
-    /// Набор карточек, принадлежащих колонкам.
-    /// </summary>
-    public DbSet<Card> Cards => Set<Card>();
-
-    /// <summary>
-    /// Набор участников досок.
-    /// </summary>
-    public DbSet<BoardMember> BoardMembers => Set<BoardMember>();
-
-    /// <summary>
-    /// Набор меток, привязанных к доскам и карточкам.
-    /// </summary>
-    public DbSet<Label> Labels => Set<Label>();
-
-    public BoardWriteDbContext(DbContextOptions<BoardWriteDbContext> options)
-        : base(options)
+    public BoardWriteDbContext(DbContextOptions<BoardWriteDbContext> options) : base(options)
     {
     }
+
+    public DbSet<Board> Boards => Set<Board>();
+    public DbSet<Column> Columns => Set<Column>();
+    public DbSet<Card> Cards => Set<Card>();
+    public DbSet<BoardMember> BoardMembers => Set<BoardMember>();
+    public DbSet<Label> Labels => Set<Label>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
+        modelBuilder.HasCharSet("utf8mb4").UseCollation("utf8mb4_0900_ai_ci");
 
-        ConfigureBoard(modelBuilder);
-        ConfigureColumn(modelBuilder);
-        ConfigureCard(modelBuilder);
-        ConfigureBoardMember(modelBuilder);
+        var dtoToUtc = new ValueConverter<DateTimeOffset, DateTime>(
+            v => v.UtcDateTime,
+            v => new DateTimeOffset(DateTime.SpecifyKind(v, DateTimeKind.Utc), TimeSpan.Zero)
+        );
+
+        ConfigureBoard(modelBuilder, dtoToUtc);
+        ConfigureColumn(modelBuilder, dtoToUtc);
+        ConfigureCard(modelBuilder, dtoToUtc);
+        ConfigureBoardMember(modelBuilder, dtoToUtc);
         ConfigureLabel(modelBuilder);
+
+        base.OnModelCreating(modelBuilder);
     }
 
-    private static void ConfigureBoard(ModelBuilder modelBuilder)
+    private static void ConfigureBoard(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
     {
         var builder = modelBuilder.Entity<Board>();
 
@@ -72,9 +57,11 @@ public class BoardWriteDbContext : DbContext
             .IsRequired();
 
         builder.Property(b => b.CreatedAt)
+            .HasConversion(dtoToUtc)
             .IsRequired();
 
         builder.Property(b => b.UpdatedAt)
+            .HasConversion(dtoToUtc)
             .IsRequired();
 
         builder.HasMany(b => b.Columns)
@@ -87,14 +74,18 @@ public class BoardWriteDbContext : DbContext
             .HasForeignKey(m => m.BoardId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Board -> Label (одна доска, много меток), FK будет теневым свойством BoardId у Label
         builder.HasMany(b => b.Labels)
             .WithOne()
             .HasForeignKey("BoardId")
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(b => b.Cards)
+            .WithOne()
+            .HasForeignKey(c => c.BoardId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
-    private static void ConfigureColumn(ModelBuilder modelBuilder)
+    private static void ConfigureColumn(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
     {
         var builder = modelBuilder.Entity<Column>();
 
@@ -110,21 +101,21 @@ public class BoardWriteDbContext : DbContext
             .HasMaxLength(200);
 
         builder.Property(c => c.Description)
-            .HasMaxLength(1000);
+            .HasMaxLength(2000);
 
         builder.Property(c => c.Order)
             .IsRequired();
 
         builder.Property(c => c.CreatedAt)
+            .HasConversion(dtoToUtc)
             .IsRequired();
 
         builder.Property(c => c.UpdatedAt)
+            .HasConversion(dtoToUtc)
             .IsRequired();
-
-        builder.HasIndex(c => new { c.BoardId, c.Order });
     }
 
-    private static void ConfigureCard(ModelBuilder modelBuilder)
+    private static void ConfigureCard(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
     {
         var builder = modelBuilder.Entity<Card>();
 
@@ -132,12 +123,15 @@ public class BoardWriteDbContext : DbContext
 
         builder.HasKey(c => c.Id);
 
+        builder.Property(c => c.BoardId)
+            .IsRequired();
+
         builder.Property(c => c.ColumnId)
             .IsRequired();
 
         builder.Property(c => c.Title)
             .IsRequired()
-            .HasMaxLength(500);
+            .HasMaxLength(200);
 
         builder.Property(c => c.Description)
             .HasMaxLength(4000);
@@ -146,49 +140,24 @@ public class BoardWriteDbContext : DbContext
             .IsRequired();
 
         builder.Property(c => c.CreatedAt)
+            .HasConversion(dtoToUtc)
             .IsRequired();
 
         builder.Property(c => c.UpdatedAt)
+            .HasConversion(dtoToUtc)
             .IsRequired();
 
         builder.Property(c => c.CreatedByUserId)
             .IsRequired();
 
         builder.Property(c => c.DueDate)
-            .IsRequired(false);
+            .HasConversion(dtoToUtc);
 
-        // FK: Card -> Column (многие к одному)
-        builder.HasOne<Column>()
-            .WithMany()
-            .HasForeignKey(c => c.ColumnId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // assigneeUserIds храним как отдельную таблицу (многие-ко-многим Card <-> UserId),
-        // здесь пока ничего не настраиваем, т.к. сущности User в этом контексте нет.
-
-        // Card <-> Label (многие-ко-многим) через промежуточную таблицу
-        builder
-            .HasMany(c => c.Labels)
-            .WithMany()
-            .UsingEntity<Dictionary<string, object>>(
-                "card_labels",
-                right => right
-                    .HasOne<Label>()
-                    .WithMany()
-                    .HasForeignKey("LabelId")
-                    .OnDelete(DeleteBehavior.Cascade),
-                left => left
-                    .HasOne<Card>()
-                    .WithMany()
-                    .HasForeignKey("CardId")
-                    .OnDelete(DeleteBehavior.Cascade),
-                join =>
-                {
-                    join.HasKey("CardId", "LabelId");
-                });
+        builder.Ignore(c => c.Labels);
+        builder.Ignore(c => c.AssigneeUserIds);
     }
 
-    private static void ConfigureBoardMember(ModelBuilder modelBuilder)
+    private static void ConfigureBoardMember(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
     {
         var builder = modelBuilder.Entity<BoardMember>();
 
@@ -206,12 +175,11 @@ public class BoardWriteDbContext : DbContext
             .IsRequired();
 
         builder.Property(m => m.JoinedAt)
+            .HasConversion(dtoToUtc)
             .IsRequired();
 
         builder.Property(m => m.LeftAt)
-            .IsRequired(false);
-
-        builder.HasIndex(m => new { m.BoardId, m.UserId });
+            .HasConversion(dtoToUtc);
     }
 
     private static void ConfigureLabel(ModelBuilder modelBuilder)
@@ -231,6 +199,6 @@ public class BoardWriteDbContext : DbContext
 
         builder.Property(l => l.Color)
             .IsRequired()
-            .HasMaxLength(20);
+            .HasMaxLength(50);
     }
 }

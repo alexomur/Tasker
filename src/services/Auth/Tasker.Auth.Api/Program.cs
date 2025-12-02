@@ -43,7 +43,8 @@ builder.Services.AddKafkaCore(builder.Configuration);
 
 var conn = builder.Configuration.GetConnectionString("Auth")
            ?? builder.Configuration["ConnectionStrings:Auth"] 
-           ?? "Server=mysql;Port=3306;Database=tasker;User=tasker;Password=dev;TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;";
+           ?? "Server=mysql;Port=3306;Database=tasker;User=tasker;Password=tasker;TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;";
+
 builder.Services.AddDbContext<AuthDbContext>(opt =>
 {
     opt.UseMySql(conn, ServerVersion.AutoDetect(conn),

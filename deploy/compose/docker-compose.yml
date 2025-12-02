@@ -4,10 +4,10 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     environment:
-      - MYSQL_DATABASE=tasker
-      - MYSQL_USER=tasker
-      - MYSQL_PASSWORD=dev
-      - MYSQL_ROOT_PASSWORD=devroot
+      - MYSQL_DATABASE=${MYSQL_DB}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_ROOT_HOST=%
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot --silent"]
@@ -19,6 +19,7 @@ services:
       - mysql_data:/var/lib/mysql
     ports:
       - "3306:3306"
+
   cassandra:
     image: cassandra:4.1
     ports:
@@ -77,11 +78,11 @@ services:
       dockerfile: src/services/Auth/Tasker.Auth.Api/Dockerfile
     environment:
       - ASPNETCORE_URLS=http://+:8080
-      - ASPNETCORE_ENVIRONMENT=Development  
+      - ASPNETCORE_ENVIRONMENT=Development
       - Redis__Connection=redis:6379
       - Auth__SessionTtlMinutes=10080
       - KAFKA__BROKERS=redpanda:9092
-      - ConnectionStrings__Auth=Server=mysql;Port=3306;Database=tasker;User=tasker;Password=dev;TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;
+      - ConnectionStrings__Auth=Server=mysql;Port=3306;Database=${MYSQL_DB};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;
     ports:
       - "5001:8080"
     depends_on:
@@ -110,11 +111,13 @@ services:
     environment:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__BoardWrite=Server=mysql;Port=3306;Database=${MYSQL_DB};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;
     ports:
       - "5003:8080"
     depends_on:
       mysql:
         condition: service_healthy
+
   
   projector-api:
     build:

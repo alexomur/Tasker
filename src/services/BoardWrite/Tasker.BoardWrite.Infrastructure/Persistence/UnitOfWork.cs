@@ -1,16 +1,20 @@
+using System.Threading;
+using System.Threading.Tasks;
 using Tasker.Shared.Kernel.Abstractions;
 
 namespace Tasker.BoardWrite.Infrastructure.Persistence;
 
 public sealed class UnitOfWork : IUnitOfWork
 {
-    private readonly BoardWriteDbContext _db;
+    private readonly BoardWriteDbContext _dbContext;
 
-    public UnitOfWork(BoardWriteDbContext db)
+    public UnitOfWork(BoardWriteDbContext dbContext)
     {
-        _db = db;
+        _dbContext = dbContext;
     }
 
     public Task<int> SaveChangesAsync(CancellationToken ct = default)
-        => _db.SaveChangesAsync(ct);
+    {
+        return _dbContext.SaveChangesAsync(ct);
+    }
 }

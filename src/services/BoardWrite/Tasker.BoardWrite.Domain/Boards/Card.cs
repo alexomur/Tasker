@@ -2,10 +2,23 @@ using Tasker.Shared.Kernel.Abstractions;
 
 namespace Tasker.BoardWrite.Domain.Boards;
 
+/// <summary>
+/// Карточка задачи на доске. Хранится в рамках конкретной доски и относится к одной колонке.
+/// </summary>
 public sealed class Card : Entity
 {
     private readonly List<Label> _labels = new();
     private readonly List<Guid> _assigneeUserIds = new();
+
+    /// <summary>
+    /// Идентификатор доски, к которой принадлежит карточка.
+    /// </summary>
+    public Guid BoardId { get; private set; }
+
+    /// <summary>
+    /// Идентификатор колонки, в которой сейчас находится карточка.
+    /// </summary>
+    public Guid ColumnId { get; private set; }
 
     /// <summary>
     /// Заголовок карточки, краткое описание задачи.
@@ -21,11 +34,6 @@ public sealed class Card : Entity
     /// Набор меток, используемых для классификации и фильтрации карточки.
     /// </summary>
     public IReadOnlyCollection<Label> Labels => _labels.AsReadOnly();
-
-    /// <summary>
-    /// Идентификатор колонки, в которой сейчас находится карточка.
-    /// </summary>
-    public Guid ColumnId { get; private set; }
 
     /// <summary>
     /// Порядок карточки внутри колонки, используется для сортировки на доске.
@@ -60,6 +68,7 @@ public sealed class Card : Entity
     private Card() { }
 
     private Card(
+        Guid boardId,
         Guid columnId,
         string title,
         Guid createdByUserId,
@@ -68,11 +77,16 @@ public sealed class Card : Entity
         string? description = null,
         DateTimeOffset? dueDate = null)
     {
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            throw new ArgumentException("Title cannot be empty.", nameof(title));
-        }
+        if (boardId == Guid.Empty)
+            throw new ArgumentException("BoardId cannot be empty.", nameof(boardId));
 
+        if (columnId == Guid.Empty)
+            throw new ArgumentException("ColumnId cannot be empty.", nameof(columnId));
+
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Title cannot be empty.", nameof(title));
+
+        BoardId = boardId;
         ColumnId = columnId;
         Title = title.Trim();
         Description = description;
@@ -83,7 +97,11 @@ public sealed class Card : Entity
         DueDate = dueDate;
     }
 
+    /// <summary>
+    /// Создаёт новую карточку для указанной доски и колонки.
+    /// </summary>
     public static Card Create(
+        Guid boardId,
         Guid columnId,
         string title,
         Guid createdByUserId,
@@ -92,62 +110,84 @@ public sealed class Card : Entity
         string? description = null,
         DateTimeOffset? dueDate = null)
     {
-        var card = new Card(columnId, title, createdByUserId, order, now, description, dueDate);
-
+        var card = new Card(boardId, columnId, title, createdByUserId, order, now, description, dueDate);
         return card;
     }
 
+    /// <summary>
+    /// Переименовывает карточку.
+    /// </summary>
     public void Rename(string title, DateTimeOffset now)
     {
         if (string.IsNullOrWhiteSpace(title))
-        {
             throw new ArgumentException("Title cannot be empty.", nameof(title));
-        }
 
         Title = title.Trim();
         Touch(now);
     }
 
+    /// <summary>
+    /// Изменяет описание карточки.
+    /// </summary>
     public void ChangeDescription(string? description, DateTimeOffset now)
     {
         Description = description;
         Touch(now);
     }
 
+    /// <summary>
+    /// Перемещает карточку в другую колонку с указанным порядком.
+    /// </summary>
     public void MoveToColumn(Guid newColumnId, int newOrder, DateTimeOffset now)
     {
+        if (newColumnId == Guid.Empty)
+            throw new ArgumentException("ColumnId cannot be empty.", nameof(newColumnId));
+
         ColumnId = newColumnId;
         Order = newOrder;
         Touch(now);
     }
 
+    /// <summary>
+    /// Изменяет порядок карточки внутри текущей колонки.
+    /// </summary>
     public void Reorder(int newOrder, DateTimeOffset now)
     {
         Order = newOrder;
         Touch(now);
     }
 
+    /// <summary>
+    /// Устанавливает или сбрасывает дедлайн карточки.
+    /// </summary>
     public void SetDueDate(DateTimeOffset? dueDate, DateTimeOffset now)
     {
         DueDate = dueDate;
         Touch(now);
     }
 
+    /// <summary>
+    /// Назначает пользователя исполнителем по карточке.
+    /// </summary>
     public void AssignUser(Guid userId, DateTimeOffset now)
     {
-        if (!_assigneeUserIds.Contains(userId))
-        {
-            _assigneeUserIds.Add(userId);
-            Touch(now);
-        }
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId cannot be empty.", nameof(userId));
+
+        if (_assigneeUserIds.Contains(userId))
+            return;
+
+        _assigneeUserIds.Add(userId);
+        Touch(now);
     }
 
+    /// <summary>
+    /// Убирает пользователя из исполнителей по карточке.
+    /// </summary>
     public void UnassignUser(Guid userId, DateTimeOffset now)
     {
         if (_assigneeUserIds.Remove(userId))
-        {
             Touch(now);
-        }
     }
 
     private void Touch(DateTimeOffset now) => UpdatedAt = now;
