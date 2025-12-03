@@ -5,7 +5,7 @@ using Tasker.BoardWrite.Domain.Boards;
 
 namespace Tasker.BoardWrite.Infrastructure;
 
-public class BoardWriteDbContext : DbContext
+public sealed class BoardWriteDbContext : DbContext
 {
     public BoardWriteDbContext(DbContextOptions<BoardWriteDbContext> options) : base(options)
     {
@@ -83,6 +83,11 @@ public class BoardWriteDbContext : DbContext
             .WithOne()
             .HasForeignKey(c => c.BoardId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(b => b.OwnerUserId);
+
+        // доменные события базе не нужны
+        builder.Ignore(b => b.DomainEvents);
     }
 
     private static void ConfigureColumn(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
@@ -113,6 +118,11 @@ public class BoardWriteDbContext : DbContext
         builder.Property(c => c.UpdatedAt)
             .HasConversion(dtoToUtc)
             .IsRequired();
+
+        builder.HasIndex(c => c.BoardId);
+        builder.HasIndex(c => new { c.BoardId, c.Order });
+
+        builder.Ignore(c => c.DomainEvents);
     }
 
     private static void ConfigureCard(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
@@ -155,6 +165,10 @@ public class BoardWriteDbContext : DbContext
 
         builder.Ignore(c => c.Labels);
         builder.Ignore(c => c.AssigneeUserIds);
+        builder.Ignore(c => c.DomainEvents);
+
+        builder.HasIndex(c => c.BoardId);
+        builder.HasIndex(c => new { c.BoardId, c.ColumnId, c.Order });
     }
 
     private static void ConfigureBoardMember(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
@@ -180,6 +194,12 @@ public class BoardWriteDbContext : DbContext
 
         builder.Property(m => m.LeftAt)
             .HasConversion(dtoToUtc);
+
+        builder.Ignore(m => m.IsActive);
+        builder.Ignore(m => m.DomainEvents);
+
+        builder.HasIndex(m => m.BoardId);
+        builder.HasIndex(m => new { m.BoardId, m.UserId });
     }
 
     private static void ConfigureLabel(ModelBuilder modelBuilder)
@@ -200,5 +220,13 @@ public class BoardWriteDbContext : DbContext
         builder.Property(l => l.Color)
             .IsRequired()
             .HasMaxLength(50);
+
+        // FK к доске — через теневое свойство
+        builder.Property<Guid>("BoardId")
+            .IsRequired();
+
+        builder.HasIndex("BoardId");
+
+        builder.Ignore(l => l.DomainEvents);
     }
 }

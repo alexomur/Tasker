@@ -1,11 +1,12 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tasker.BoardWrite.Api.Controllers.Boards.Models;
 using Tasker.BoardWrite.Application.Boards.Commands.AddBoardMember;
 using Tasker.BoardWrite.Application.Boards.Commands.AddColumn;
-using Tasker.BoardWrite.Application.Boards.Commands.AddLabel;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateCard;
+using Tasker.BoardWrite.Application.Boards.Commands.CreateLabel;
 using Tasker.BoardWrite.Application.Boards.Queries.GetBoardDetails;
 
 namespace Tasker.BoardWrite.Api.Controllers.Boards;
@@ -15,6 +16,7 @@ namespace Tasker.BoardWrite.Api.Controllers.Boards;
 /// </summary>
 [ApiController]
 [Route("api/v1/boards")]
+[Authorize]
 public sealed class BoardsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -114,7 +116,7 @@ public sealed class BoardsController : ControllerBase
         [FromBody] AddLabelRequest request,
         CancellationToken ct)
     {
-        var cmd = new AddLabelCommand(
+        var cmd = new CreateLabelCommand(
             BoardId: boardId,
             Title: request.Title,
             Color: request.Color,

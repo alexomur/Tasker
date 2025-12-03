@@ -3,7 +3,7 @@ using Tasker.Shared.Kernel.Abstractions;
 namespace Tasker.BoardWrite.Domain.Boards;
 
 /// <summary>
-/// Колонка на доске, объединяющая карточки в рамках одного этапа процесса.
+/// Колонка на доске, содержит упорядоченный набор карточек.
 /// </summary>
 public sealed class Column : Entity
 {
@@ -13,31 +13,32 @@ public sealed class Column : Entity
     public Guid BoardId { get; private set; }
 
     /// <summary>
-    /// Название колонки, отображаемое на доске.
+    /// Название колонки.
     /// </summary>
     public string Title { get; private set; } = null!;
 
     /// <summary>
-    /// Дополнительное описание колонки. Может отсутствовать.
+    /// Дополнительное описание колонки.
     /// </summary>
     public string? Description { get; private set; }
 
     /// <summary>
-    /// Порядок колонки на доске, используемый для сортировки слева направо.
+    /// Порядок колонки на доске (0,1,2,...).
     /// </summary>
     public int Order { get; private set; }
 
     /// <summary>
-    /// Дата и время создания колонки в формате UTC.
+    /// Дата создания (UTC).
     /// </summary>
     public DateTimeOffset CreatedAt { get; private set; }
 
     /// <summary>
-    /// Дата и время последнего изменения колонки в формате UTC.
+    /// Дата последнего изменения (UTC).
     /// </summary>
     public DateTimeOffset UpdatedAt { get; private set; }
 
-    protected Column() { }
+    // Для EF
+    private Column() { }
 
     private Column(
         Guid boardId,
@@ -49,79 +50,59 @@ public sealed class Column : Entity
         if (boardId == Guid.Empty)
             throw new ArgumentException("Идентификатор доски не может быть пустым.", nameof(boardId));
 
-        SetTitle(title);
-        SetDescription(description);
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Название колонки не может быть пустым.", nameof(title));
 
         BoardId = boardId;
+        Title = title.Trim();
+        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
         Order = order;
         CreatedAt = now;
         UpdatedAt = now;
     }
 
     /// <summary>
-    /// Создаёт новую колонку на указанной доске.
+    /// Создаёт новую колонку.
     /// </summary>
-    /// <param name="boardId">Идентификатор доски.</param>
-    /// <param name="title">Название колонки.</param>
-    /// <param name="order">Порядок колонки на доске.</param>
-    /// <param name="now">Текущее время в формате UTC.</param>
-    /// <param name="description">Описание колонки, может быть пустым или null.</param>
     public static Column Create(
         Guid boardId,
         string title,
         int order,
         DateTimeOffset now,
         string? description = null)
-    {
-        return new Column(boardId, title, order, now, description);
-    }
+        => new Column(boardId, title, order, now, description);
 
     /// <summary>
-    /// Переименовывает колонку.
+    /// Переименовать колонку.
     /// </summary>
-    /// <param name="title">Новое название колонки.</param>
-    /// <param name="now">Текущее время в формате UTC.</param>
     public void Rename(string title, DateTimeOffset now)
-    {
-        SetTitle(title);
-        Touch(now);
-    }
-
-    /// <summary>
-    /// Изменяет описание колонки.
-    /// </summary>
-    /// <param name="description">Новое описание колонки, может быть пустым или null.</param>
-    /// <param name="now">Текущее время в формате UTC.</param>
-    public void ChangeDescription(string? description, DateTimeOffset now)
-    {
-        SetDescription(description);
-        Touch(now);
-    }
-
-    /// <summary>
-    /// Изменяет порядок колонки на доске.
-    /// </summary>
-    /// <param name="order">Новый порядок колонки.</param>
-    /// <param name="now">Текущее время в формате UTC.</param>
-    public void Reorder(int order, DateTimeOffset now)
-    {
-        Order = order;
-        Touch(now);
-    }
-
-    private void SetTitle(string title)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("Название колонки не может быть пустым.", nameof(title));
 
         Title = title.Trim();
+        Touch(now);
     }
 
-    private void SetDescription(string? description)
+    /// <summary>
+    /// Изменить описание.
+    /// </summary>
+    public void ChangeDescription(string? description, DateTimeOffset now)
     {
-        Description = string.IsNullOrWhiteSpace(description)
-            ? null
-            : description.Trim();
+        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        Touch(now);
+    }
+
+    /// <summary>
+    /// Изменить порядок колонки.
+    /// </summary>
+    public void Reorder(int newOrder, DateTimeOffset now)
+    {
+        if (newOrder < 0)
+            throw new ArgumentOutOfRangeException(nameof(newOrder), "Порядок колонки не может быть отрицательным.");
+
+        Order = newOrder;
+        Touch(now);
     }
 
     private void Touch(DateTimeOffset now) => UpdatedAt = now;

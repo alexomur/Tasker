@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Tasker.BoardWrite.Application.Abstractions.Persistence;
+using Tasker.BoardWrite.Application.Abstractions.Security;
 using Tasker.BoardWrite.Domain.Errors;
 
 namespace Tasker.BoardWrite.Application.Boards.Queries.GetBoardDetails;
@@ -11,19 +12,23 @@ public sealed class GetBoardDetailsHandler
     : IRequestHandler<GetBoardDetailsQuery, BoardDetailsResult>
 {
     private readonly IBoardRepository _boards;
+    private readonly IBoardAccessService _boardAccess;
 
-    public GetBoardDetailsHandler(IBoardRepository boards)
+    public GetBoardDetailsHandler(IBoardRepository boards, IBoardAccessService boardAccess)
     {
         _boards = boards;
+        _boardAccess = boardAccess;
     }
 
     public async Task<BoardDetailsResult> Handle(GetBoardDetailsQuery request, CancellationToken ct)
     {
-        var board = await _boards.GetByIdAsync(request.BoardId, ct);
+        var board = await _boards.GetByIdAsTrackingAsync(request.BoardId, ct);
         if (board is null)
         {
             throw new BoardNotFoundException(request.BoardId);
         }
+        
+        await _boardAccess.EnsureCanWriteBoardAsync(board.Id, ct);
 
         var columns = board.Columns
             .OrderBy(c => c.Order)

@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace Tasker.BoardWrite.Application.Boards.Commands.AddLabel;
+namespace Tasker.BoardWrite.Application.Boards.Commands.CreateLabel;
 
 /// <summary>
 /// Команда на добавление метки на доску.
@@ -9,7 +9,7 @@ namespace Tasker.BoardWrite.Application.Boards.Commands.AddLabel;
 /// <param name="Title">Название метки.</param>
 /// <param name="Color">Цвет метки.</param>
 /// <param name="Description">Описание метки, может быть null.</param>
-public sealed record AddLabelCommand(
+public sealed record CreateLabelCommand(
     Guid BoardId,
     string Title,
     string Color,

@@ -111,6 +111,7 @@ services:
     environment:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
+      - Redis__Connection=redis:6379
       - ConnectionStrings__BoardWrite=Server=mysql;Port=3306;Database=${MYSQL_DB};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;
     ports:
       - "5003:8080"

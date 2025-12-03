@@ -1,40 +1,53 @@
 ﻿using MediatR;
 using Tasker.BoardWrite.Application.Abstractions.Persistence;
+using Tasker.BoardWrite.Application.Abstractions.Security;
 using Tasker.BoardWrite.Domain.Errors;
 using Tasker.Shared.Kernel.Abstractions;
 
-namespace Tasker.BoardWrite.Application.Boards.Commands.AddBoardMember;
-
-/// <summary>
-/// Обработчик команды добавления участника.
-/// </summary>
-public sealed class AddBoardMemberHandler
-    : IRequestHandler<AddBoardMemberCommand, AddBoardMemberResult>
+namespace Tasker.BoardWrite.Application.Boards.Commands.AddBoardMember
 {
-    private readonly IBoardRepository _boards;
-    private readonly IUnitOfWork _uow;
-
-    public AddBoardMemberHandler(IBoardRepository boards, IUnitOfWork uow)
+    /// <summary>
+    /// Обработчик команды добавления участника.
+    /// </summary>
+    public sealed class AddBoardMemberHandler
+        : IRequestHandler<AddBoardMemberCommand, AddBoardMemberResult>
     {
-        _boards = boards;
-        _uow = uow;
-    }
+        private readonly IBoardRepository _boards;
+        private readonly IUnitOfWork _uow;
+        private readonly IBoardAccessService _boardAccess;
 
-    public async Task<AddBoardMemberResult> Handle(AddBoardMemberCommand cmd, CancellationToken ct)
-    {
-        var board = await _boards.GetByIdAsync(cmd.BoardId, ct);
-        if (board is null)
-            throw new BoardNotFoundException(cmd.BoardId);
+        public AddBoardMemberHandler(
+            IBoardRepository boards,
+            IUnitOfWork uow,
+            IBoardAccessService boardAccess)
+        {
+            _boards = boards;
+            _uow = uow;
+            _boardAccess = boardAccess;
+        }
 
-        var now = DateTimeOffset.UtcNow;
+        public async Task<AddBoardMemberResult> Handle(AddBoardMemberCommand cmd, CancellationToken ct)
+        {
+            var board = await _boards.GetByIdAsTrackingAsync(cmd.BoardId, ct);
+            if (board is null)
+            {
+                throw new BoardNotFoundException(cmd.BoardId);
+            }
 
-        board.AddMember(cmd.UserId, cmd.Role, now);
+            await _boardAccess.EnsureCanManageMembersAsync(board.Id, ct);
 
-        await _uow.SaveChangesAsync(ct);
+            var now = DateTimeOffset.UtcNow;
 
-        return new AddBoardMemberResult(
-            BoardId: cmd.BoardId,
-            UserId: cmd.UserId,
-            Role: cmd.Role);
+            var member = board.AddMember(cmd.UserId, cmd.Role, now);
+
+            await _boards.AddEntityAsync(member, ct);
+
+            await _uow.SaveChangesAsync(ct);
+
+            return new AddBoardMemberResult(
+                BoardId: cmd.BoardId,
+                UserId: cmd.UserId,
+                Role: cmd.Role);
+        }
     }
 }

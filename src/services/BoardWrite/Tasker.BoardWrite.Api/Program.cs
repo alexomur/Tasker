@@ -1,20 +1,23 @@
-using System;
-using System.Linq;
 using System.Text.Json;
-using MediatR;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.OpenApi.Models;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using Serilog;
+using StackExchange.Redis;
+using Tasker.BoardWrite.Api.Security;
 using Tasker.BoardWrite.Application.Abstractions.Persistence;
+using Tasker.BoardWrite.Application.Abstractions.Security;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Infrastructure;
 using Tasker.BoardWrite.Infrastructure.Persistence;
+using Tasker.BoardWrite.Infrastructure.Security;
 using Tasker.Shared.Kafka.Extensions;
 using Tasker.Shared.Kernel.Abstractions;
+using Tasker.Shared.Kernel.Abstractions.Security;
 using Tasker.Shared.Web;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +27,41 @@ builder.Host.UseSerilog((ctx, cfg) => cfg
     .Enrich.FromLogContext());
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Tasker BoardWrite API",
+        Version = "v1"
+    });
+
+    // Описание схемы авторизации через заголовок Authorization: Bearer {token}
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "Token",
+        In = ParameterLocation.Header,
+        Description = "Введите access-токен. Пример: 8CAEB2D5... (без 'Bearer ')"
+    });
+
+    // Требование авторизации по умолчанию для всех операций
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 builder.Services.AddProblemDetails();
 
 builder.Services.AddHealthChecks()
@@ -50,7 +87,10 @@ var serverVersion = new MySqlServerVersion(new Version(8, 0, 36));
 builder.Services.AddDbContext<BoardWriteDbContext>(opt =>
 {
     opt.UseMySql(conn, serverVersion,
-        mySql => mySql.MigrationsHistoryTable("__EFMigrationsHistory", schema: null));
+            mySql => mySql.MigrationsHistoryTable("__EFMigrationsHistory", schema: null))
+        .EnableDetailedErrors()
+        .EnableSensitiveDataLogging()
+        .LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, LogLevel.Information);
 });
 
 builder.Services.AddScoped<IBoardRepository, BoardRepository>();
@@ -65,6 +105,25 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<AppExceptionFilter>();
 });
+
+var redisConn = builder.Configuration["Redis:Connection"] ?? "redis:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConn));
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+
+builder.Services.AddScoped<IAccessTokenValidator, RedisAccessTokenValidator>();
+builder.Services.AddScoped<IBoardAccessService, BoardAccessService>();
+
+builder.Services
+    .AddAuthentication(AccessTokenAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, AccessTokenAuthenticationHandler>(
+        AccessTokenAuthenticationHandler.SchemeName,
+        options =>
+        {
+        });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
