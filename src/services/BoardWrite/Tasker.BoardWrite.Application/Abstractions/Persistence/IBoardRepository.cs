@@ -32,4 +32,9 @@ public interface IBoardRepository
     /// </summary>
     Task AddEntityAsync<TEntity>(TEntity entity, CancellationToken ct = default)
         where TEntity : Entity;
+
+    /// <summary>
+    /// Возвращает доски, в которых указанный пользователь является активным участником.
+    /// </summary>
+    Task<IReadOnlyCollection<Board>> GetBoardsForUserAsync(Guid userId, CancellationToken ct);
 }

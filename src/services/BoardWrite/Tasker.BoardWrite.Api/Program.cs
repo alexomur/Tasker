@@ -125,7 +125,23 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+const string frontendCorsPolicy = "FrontendDev";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        frontendCorsPolicy,
+        policy =>
+        {
+            policy
+                .WithOrigins("http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+});
+
 var app = builder.Build();
+
+app.UseCors(frontendCorsPolicy);
 
 app.UseSerilogRequestLogging();
 

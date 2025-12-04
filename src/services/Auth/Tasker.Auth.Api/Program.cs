@@ -30,6 +30,7 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "live" });
+
 builder.Services
     .AddOpenTelemetry()
     .ConfigureResource(r => r.AddService(builder.Environment.ApplicationName))
@@ -42,7 +43,7 @@ builder.Services
 builder.Services.AddKafkaCore(builder.Configuration);
 
 var conn = builder.Configuration.GetConnectionString("Auth")
-           ?? builder.Configuration["ConnectionStrings:Auth"] 
+           ?? builder.Configuration["ConnectionStrings:Auth"]
            ?? "Server=mysql;Port=3306;Database=tasker;User=tasker;Password=tasker;TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;";
 
 builder.Services.AddDbContext<AuthDbContext>(opt =>
@@ -74,6 +75,17 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<AppExceptionFilter>();
 });
 
+// CORS только для разработки: фронт с Vite на http://localhost:5173
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DevCors", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
@@ -82,12 +94,14 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors("DevCors");
 }
 
 if (app.Environment.IsProduction())
 {
     app.UseHttpsRedirection();
 }
+
 app.MapPrometheusScrapingEndpoint();
 
 app.MapHealthChecks("/healthz", new HealthCheckOptions {

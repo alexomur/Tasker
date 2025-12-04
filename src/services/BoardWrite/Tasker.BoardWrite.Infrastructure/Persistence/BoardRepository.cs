@@ -63,4 +63,18 @@ public sealed class BoardRepository : IBoardRepository
     {
         return _db.Set<TEntity>().AddAsync(entity, ct).AsTask();
     }
+
+    /// <summary>
+    /// Возвращает доски, в которых пользователь является активным участником.
+    /// Активность определяем через LeftAt == null, т.к. IsActive не мапится в БД.
+    /// </summary>
+    public async Task<IReadOnlyCollection<Board>> GetBoardsForUserAsync(Guid userId, CancellationToken ct)
+    {
+        var boards = await _db.Boards
+            .Include(b => b.Members)
+            .Where(b => b.Members.Any(m => m.UserId == userId && m.LeftAt == null))
+            .ToListAsync(ct);
+
+        return boards;
+    }
 }

@@ -8,11 +8,13 @@ using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateCard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateLabel;
 using Tasker.BoardWrite.Application.Boards.Queries.GetBoardDetails;
+using Tasker.BoardWrite.Application.Boards.Queries.GetMyBoards;
 
 namespace Tasker.BoardWrite.Api.Controllers.Boards;
 
 /// <summary>
 /// HTTP API для управления досками (write-сторона).
+/// Временно содержит read-эндпоинты для MVP.
 /// </summary>
 [ApiController]
 [Route("api/v1/boards")]
@@ -24,6 +26,25 @@ public sealed class BoardsController : ControllerBase
     public BoardsController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    /// <summary>
+    /// Возвращает список досок текущего пользователя.
+    /// В будущем будет перенесено в BoardRead.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyCollection<MyBoardListItemResult>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyCollection<MyBoardListItemResult>>> GetBoards(
+        [FromQuery] bool mine,
+        CancellationToken ct)
+    {
+        if (!mine)
+        {
+            return BadRequest("Сейчас поддерживается только запрос /api/v1/boards?mine=true.");
+        }
+
+        var result = await _mediator.Send(new GetMyBoardsQuery(), ct);
+        return Ok(result);
     }
 
     /// <summary>
