@@ -27,8 +27,8 @@ public sealed class GetBoardDetailsHandler
         {
             throw new BoardNotFoundException(request.BoardId);
         }
-        
-        await _boardAccess.EnsureCanWriteBoardAsync(board.Id, ct);
+
+        await _boardAccess.EnsureCanReadBoardAsync(board.Id, ct);
 
         var columns = board.Columns
             .OrderBy(c => c.Order)

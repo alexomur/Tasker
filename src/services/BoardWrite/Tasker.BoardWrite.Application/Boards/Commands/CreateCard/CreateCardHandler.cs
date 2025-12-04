@@ -15,15 +15,18 @@ public sealed class CreateCardHandler
     private readonly IBoardRepository _boards;
     private readonly IUnitOfWork _uow;
     private readonly IBoardAccessService _boardAccess;
+    private readonly ICurrentUser _currentUser;
 
     public CreateCardHandler(
         IBoardRepository boards,
         IUnitOfWork uow,
-        IBoardAccessService boardAccess)
+        IBoardAccessService boardAccess,
+        ICurrentUser currentUser)
     {
         _boards = boards;
         _uow = uow;
         _boardAccess = boardAccess;
+        _currentUser = currentUser;
     }
 
     public async Task<CreateCardResult> Handle(CreateCardCommand cmd, CancellationToken ct)
@@ -36,18 +39,23 @@ public sealed class CreateCardHandler
 
         await _boardAccess.EnsureCanWriteBoardAsync(board.Id, ct);
 
+        if (!_currentUser.IsAuthenticated || _currentUser.UserId is null)
+        {
+            throw new InvalidOperationException("Текущий пользователь не определён.");
+        }
+
+        var createdByUserId = _currentUser.UserId.Value;
         var now = DateTimeOffset.UtcNow;
 
         var card = board.CreateCard(
             columnId: cmd.ColumnId,
             title: cmd.Title,
-            createdByUserId: cmd.CreatedByUserId,
+            createdByUserId: createdByUserId,
             now: now,
             description: cmd.Description,
             dueDate: cmd.DueDate);
 
         await _boards.AddEntityAsync(card, ct);
-
         await _uow.SaveChangesAsync(ct);
 
         return new CreateCardResult(

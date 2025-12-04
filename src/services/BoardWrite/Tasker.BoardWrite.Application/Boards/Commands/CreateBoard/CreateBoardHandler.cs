@@ -13,20 +13,31 @@ public sealed class CreateBoardHandler
 {
     private readonly IBoardRepository _boards;
     private readonly IUnitOfWork _uow;
+    private readonly ICurrentUser _currentUser;
 
-    public CreateBoardHandler(IBoardRepository boards, IUnitOfWork uow)
+    public CreateBoardHandler(
+        IBoardRepository boards,
+        IUnitOfWork uow,
+        ICurrentUser currentUser)
     {
         _boards = boards;
         _uow = uow;
+        _currentUser = currentUser;
     }
 
     public async Task<CreateBoardResult> Handle(CreateBoardCommand cmd, CancellationToken ct)
     {
+        if (!_currentUser.IsAuthenticated || _currentUser.UserId is null)
+        {
+            throw new InvalidOperationException("Текущий пользователь не определён.");
+        }
+
+        var ownerUserId = _currentUser.UserId.Value;
         var now = DateTimeOffset.UtcNow;
 
         var board = Board.Create(
             title: cmd.Title,
-            ownerUserId: cmd.OwnerUserId,
+            ownerUserId: ownerUserId,
             now: now,
             description: cmd.Description);
 

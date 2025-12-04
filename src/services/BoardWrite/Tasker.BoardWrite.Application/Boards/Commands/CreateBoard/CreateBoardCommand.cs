@@ -6,11 +6,9 @@ namespace Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 /// Команда на создание новой доски.
 /// </summary>
 /// <param name="Title">Название доски.</param>
-/// <param name="OwnerUserId">Идентификатор владельца.</param>
 /// <param name="Description">Описание доски, может быть null.</param>
 public sealed record CreateBoardCommand(
     string Title,
-    Guid OwnerUserId,
     string? Description
 ) : IRequest<CreateBoardResult>;
 

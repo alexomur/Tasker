@@ -1,5 +1,4 @@
-﻿using System.Security.Claims;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tasker.BoardWrite.Api.Controllers.Boards.Models;
@@ -36,11 +35,8 @@ public sealed class BoardsController : ControllerBase
         [FromBody] CreateBoardRequest request,
         CancellationToken ct)
     {
-        var currentUserId = GetCurrentUserId();
-
         var cmd = new CreateBoardCommand(
             Title: request.Title,
-            OwnerUserId: currentUserId,
             Description: request.Description);
 
         var result = await _mediator.Send(cmd, ct);
@@ -142,13 +138,10 @@ public sealed class BoardsController : ControllerBase
         [FromBody] CreateCardRequest request,
         CancellationToken ct)
     {
-        var currentUserId = GetCurrentUserId();
-
         var cmd = new CreateCardCommand(
             BoardId: boardId,
             ColumnId: request.ColumnId,
             Title: request.Title,
-            CreatedByUserId: currentUserId,
             Description: request.Description,
             DueDate: request.DueDate);
 
@@ -157,21 +150,5 @@ public sealed class BoardsController : ControllerBase
         return Created(
             $"/api/v1/boards/{boardId}/cards/{result.CardId}",
             result);
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdValue = User.FindFirstValue("userId");
-        if (string.IsNullOrWhiteSpace(userIdValue))
-        {
-            throw new InvalidOperationException("User id is missing in the access token.");
-        }
-
-        if (!Guid.TryParse(userIdValue, out var userId))
-        {
-            throw new InvalidOperationException("User id claim has invalid format.");
-        }
-
-        return userId;
     }
 }
