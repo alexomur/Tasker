@@ -1,9 +1,12 @@
 using System.Text.Json;
+using Cassandra;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using Serilog;
+using Tasker.Shared.Kernel.Abstractions.ReadModel;
+using Tasker.Shared.ReadModel.Cassandra;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +28,38 @@ builder.Services
         .AddHttpClientInstrumentation()
         .AddRuntimeInstrumentation()
         .AddPrometheusExporter());
+
+builder.Services.AddSingleton<global::Cassandra.ISession>(sp =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var host = cfg["Cassandra:Host"] ?? "cassandra";
+    var portStr = cfg["Cassandra:Port"];
+    var port = int.TryParse(portStr, out var p) ? p : 9042;
+
+    var cluster = Cluster.Builder()
+        .AddContactPoint(host)
+        .WithPort(port)
+        .Build();
+
+    var session = cluster.Connect();
+
+    // На всякий случай убедимся, что keyspace и таблица есть
+    session.Execute(@"
+        CREATE KEYSPACE IF NOT EXISTS tasker_read
+        WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 };
+    ");
+
+    session.Execute(@"
+        CREATE TABLE IF NOT EXISTS tasker_read.board_snapshots (
+            board_id uuid PRIMARY KEY,
+            payload text
+        );
+    ");
+
+    return session;
+});
+
+builder.Services.AddSingleton<IBoardSnapshotStore, CassandraBoardSnapshotStore>();
 
 var app = builder.Build();
 
@@ -70,5 +105,19 @@ app.MapHealthChecks("/readyz", new HealthCheckOptions {
 
 app.MapGet("/healthz/quick", () => Results.Ok(new { status = "ok" }))
     .WithTags("system");
+
+const int boardSnapshotTtlSeconds = 24 * 60 * 60; // 24 часа
+app.MapGet("/api/v1/boards/{boardId:guid}", async (Guid boardId, IBoardSnapshotStore snapshots) =>
+{
+    var json = await snapshots.TryGetAsync(boardId);
+    if (json is null)
+    {
+        return Results.NotFound(new { message = "Board snapshot not found" });
+    }
+
+    await snapshots.UpsertAsync(boardId, json, boardSnapshotTtlSeconds);
+
+    return Results.Content(json, "application/json");
+});
 
 app.Run();

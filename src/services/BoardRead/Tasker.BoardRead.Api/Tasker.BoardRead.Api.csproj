@@ -17,6 +17,7 @@
     <PackageReference Include="Serilog.Sinks.Console" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\Tasker.Shared.ReadModel\Tasker.Shared.ReadModel.csproj" />
     <ProjectReference Include="..\Tasker.BoardRead.Application\Tasker.BoardRead.Application.csproj" />
     <ProjectReference Include="..\Tasker.BoardRead.Infrastructure\Tasker.BoardRead.Infrastructure.csproj" />
   </ItemGroup>

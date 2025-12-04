@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Cassandra;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
@@ -10,16 +11,21 @@ using Serilog;
 using StackExchange.Redis;
 using Tasker.BoardWrite.Api.Security;
 using Tasker.BoardWrite.Application.Abstractions.Persistence;
+using Tasker.BoardWrite.Application.Abstractions.ReadModel;
 using Tasker.BoardWrite.Application.Abstractions.Security;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Infrastructure;
 using Tasker.BoardWrite.Infrastructure.Integration;
 using Tasker.BoardWrite.Infrastructure.Persistence;
+using Tasker.BoardWrite.Infrastructure.ReadModel;
 using Tasker.BoardWrite.Infrastructure.Security;
 using Tasker.Shared.Kafka.Extensions;
 using Tasker.Shared.Kernel.Abstractions;
+using Tasker.Shared.Kernel.Abstractions.ReadModel;
 using Tasker.Shared.Kernel.Abstractions.Security;
+using Tasker.Shared.ReadModel.Cassandra;
 using Tasker.Shared.Web;
+using ISession = Cassandra.ISession;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -120,11 +126,14 @@ builder.Services.AddScoped<IBoardAccessService, BoardAccessService>();
 builder.Services.AddSingleton<IDomainEventToIntegrationEventMapper, BoardWriteDomainEventMapper>();
 builder.Services.AddScoped<IIntegrationEventPublisher, KafkaIntegrationEventPublisher>();
 
+builder.Services.AddScoped<IBoardReadModelWriter, BoardReadModelWriter>();
+
+
 builder.Services
     .AddAuthentication(AccessTokenAuthenticationHandler.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, AccessTokenAuthenticationHandler>(
         AccessTokenAuthenticationHandler.SchemeName,
-        options =>
+        _ =>
         {
         });
 
@@ -143,6 +152,38 @@ builder.Services.AddCors(options =>
                 .AllowAnyMethod();
         });
 });
+
+builder.Services.AddSingleton<ISession>(sp =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var host = cfg["Cassandra:Host"] ?? "cassandra";
+    var portStr = cfg["Cassandra:Port"];
+    var port = int.TryParse(portStr, out var p) ? p : 9042;
+
+    var cluster = Cluster.Builder()
+        .AddContactPoint(host)
+        .WithPort(port)
+        .Build();
+
+    var session = cluster.Connect();
+
+    session.Execute(@"
+        CREATE KEYSPACE IF NOT EXISTS tasker_read
+        WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 };
+    ");
+
+    session.Execute(@"
+        CREATE TABLE IF NOT EXISTS tasker_read.board_snapshots (
+            board_id uuid PRIMARY KEY,
+            payload text
+        );
+    ");
+
+    return session;
+});
+
+builder.Services.AddSingleton<IBoardSnapshotStore, CassandraBoardSnapshotStore>();
+builder.Services.AddScoped<IBoardReadModelWriter, BoardReadModelWriter>();
 
 var app = builder.Build();
 

@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Tasker.BoardWrite.Application.Abstractions.Persistence;
+using Tasker.BoardWrite.Application.Abstractions.ReadModel;
 using Tasker.BoardWrite.Application.Abstractions.Security;
 using Tasker.BoardWrite.Domain.Errors;
 using Tasker.Shared.Kernel.Abstractions;
@@ -15,15 +16,17 @@ public sealed class AddColumnHandler
     private readonly IBoardRepository _boards;
     private readonly IUnitOfWork _uow;
     private readonly IBoardAccessService _boardAccess;
+    private readonly IBoardReadModelWriter _boardReadModelWriter;
 
     public AddColumnHandler(
         IBoardRepository boards,
         IUnitOfWork uow,
-        IBoardAccessService boardAccess)
+        IBoardAccessService boardAccess, IBoardReadModelWriter boardReadModelWriter)
     {
         _boards = boards;
         _uow = uow;
         _boardAccess = boardAccess;
+        _boardReadModelWriter = boardReadModelWriter;
     }
 
     public async Task<AddColumnResult> Handle(AddColumnCommand cmd, CancellationToken ct)
@@ -46,6 +49,7 @@ public sealed class AddColumnHandler
         await _boards.AddEntityAsync(column, ct);
 
         await _uow.SaveChangesAsync(ct);
+        await _boardReadModelWriter.RefreshBoardAsync(board.Id, ct);
 
         return new AddColumnResult(
             ColumnId: column.Id,

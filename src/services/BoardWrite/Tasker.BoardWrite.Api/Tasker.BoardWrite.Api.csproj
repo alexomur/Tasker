@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\shared\Tasker.Shared.Kafka\Tasker.Shared.Kafka.csproj" />
+    <ProjectReference Include="..\..\..\shared\Tasker.Shared.ReadModel\Tasker.Shared.ReadModel.csproj" />
     <ProjectReference Include="..\..\..\shared\Tasker.Shared.Web\Tasker.Shared.Web.csproj" />
     <ProjectReference Include="..\Tasker.BoardWrite.Application\Tasker.BoardWrite.Application.csproj" />
     <ProjectReference Include="..\Tasker.BoardWrite.Infrastructure\Tasker.BoardWrite.Infrastructure.csproj" />

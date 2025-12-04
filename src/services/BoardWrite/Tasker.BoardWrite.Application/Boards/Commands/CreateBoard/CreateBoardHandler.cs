@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Tasker.BoardWrite.Application.Abstractions.Persistence;
+using Tasker.BoardWrite.Application.Abstractions.ReadModel;
 using Tasker.BoardWrite.Domain.Boards;
 using Tasker.Shared.Kernel.Abstractions;
 
@@ -14,15 +15,17 @@ public sealed class CreateBoardHandler
     private readonly IBoardRepository _boards;
     private readonly IUnitOfWork _uow;
     private readonly ICurrentUser _currentUser;
+    private readonly IBoardReadModelWriter _boardReadModelWriter;
 
     public CreateBoardHandler(
         IBoardRepository boards,
         IUnitOfWork uow,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser, IBoardReadModelWriter boardReadModelWriter)
     {
         _boards = boards;
         _uow = uow;
         _currentUser = currentUser;
+        _boardReadModelWriter = boardReadModelWriter;
     }
 
     public async Task<CreateBoardResult> Handle(CreateBoardCommand cmd, CancellationToken ct)
@@ -43,6 +46,7 @@ public sealed class CreateBoardHandler
 
         await _boards.AddAsync(board, ct);
         await _uow.SaveChangesAsync(ct);
+        await _boardReadModelWriter.RefreshBoardAsync(board.Id, ct);
 
         return new CreateBoardResult(board.Id);
     }

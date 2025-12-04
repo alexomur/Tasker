@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Tasker.BoardWrite.Application.Abstractions.Persistence;
+using Tasker.BoardWrite.Application.Abstractions.ReadModel;
 using Tasker.BoardWrite.Application.Abstractions.Security;
 using Tasker.BoardWrite.Domain.Errors;
 using Tasker.Shared.Kernel.Abstractions;
@@ -16,17 +17,19 @@ public sealed class CreateCardHandler
     private readonly IUnitOfWork _uow;
     private readonly IBoardAccessService _boardAccess;
     private readonly ICurrentUser _currentUser;
+    private readonly IBoardReadModelWriter _boardReadModelWriter;
 
     public CreateCardHandler(
         IBoardRepository boards,
         IUnitOfWork uow,
         IBoardAccessService boardAccess,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser, IBoardReadModelWriter boardReadModelWriter)
     {
         _boards = boards;
         _uow = uow;
         _boardAccess = boardAccess;
         _currentUser = currentUser;
+        _boardReadModelWriter = boardReadModelWriter;
     }
 
     public async Task<CreateCardResult> Handle(CreateCardCommand cmd, CancellationToken ct)
@@ -57,6 +60,7 @@ public sealed class CreateCardHandler
 
         await _boards.AddEntityAsync(card, ct);
         await _uow.SaveChangesAsync(ct);
+        await _boardReadModelWriter.RefreshBoardAsync(board.Id, ct);
 
         return new CreateCardResult(
             CardId: card.Id,
