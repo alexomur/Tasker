@@ -124,6 +124,11 @@ namespace Tasker.BoardWrite.Infrastructure.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("_assigneeUserIds")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("assignee_user_ids");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BoardId");

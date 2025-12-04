@@ -1,5 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tasker.BoardWrite.Domain.Boards;
 
@@ -23,19 +27,44 @@ public sealed class BoardWriteDbContext : DbContext
 
         var dtoToUtc = new ValueConverter<DateTimeOffset, DateTime>(
             v => v.UtcDateTime,
-            v => new DateTimeOffset(DateTime.SpecifyKind(v, DateTimeKind.Utc), TimeSpan.Zero)
-        );
+            v => new DateTimeOffset(DateTime.SpecifyKind(v, DateTimeKind.Utc), TimeSpan.Zero));
+
+        // Конвертер списка исполнителей карточки в строку и обратно (JSON)
+        var assigneeIdsConverter = new ValueConverter<List<Guid>, string>(
+            v => SerializeAssigneeIds(v),
+            v => DeserializeAssigneeIds(v));
+
+        // Комparer для списков GUID'ов (нужен EF, чтобы отслеживать изменения коллекции)
+        var assigneeIdsComparer = new ValueComparer<List<Guid>>(
+            (l1, l2) =>
+                l1 == l2 ||
+                (l1 != null && l2 != null && l1.SequenceEqual(l2)),
+            l =>
+                l.Aggregate(0, (acc, guid) => acc ^ guid.GetHashCode()),
+            l =>
+                l.ToList());
 
         ConfigureBoard(modelBuilder, dtoToUtc);
         ConfigureColumn(modelBuilder, dtoToUtc);
-        ConfigureCard(modelBuilder, dtoToUtc);
+        ConfigureCard(modelBuilder, dtoToUtc, assigneeIdsConverter, assigneeIdsComparer);
         ConfigureBoardMember(modelBuilder, dtoToUtc);
         ConfigureLabel(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
     }
 
-    private static void ConfigureBoard(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
+    // Обёртки вокруг JsonSerializer — чтобы не тащить optional-параметры в expression tree
+    private static string SerializeAssigneeIds(List<Guid> ids) =>
+        JsonSerializer.Serialize(ids);
+
+    private static List<Guid> DeserializeAssigneeIds(string json) =>
+        string.IsNullOrEmpty(json)
+            ? new List<Guid>()
+            : JsonSerializer.Deserialize<List<Guid>>(json) ?? new List<Guid>();
+
+    private static void ConfigureBoard(
+        ModelBuilder modelBuilder,
+        ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
     {
         var builder = modelBuilder.Entity<Board>();
 
@@ -86,11 +115,12 @@ public sealed class BoardWriteDbContext : DbContext
 
         builder.HasIndex(b => b.OwnerUserId);
 
-        // доменные события базе не нужны
         builder.Ignore(b => b.DomainEvents);
     }
 
-    private static void ConfigureColumn(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
+    private static void ConfigureColumn(
+        ModelBuilder modelBuilder,
+        ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
     {
         var builder = modelBuilder.Entity<Column>();
 
@@ -125,7 +155,11 @@ public sealed class BoardWriteDbContext : DbContext
         builder.Ignore(c => c.DomainEvents);
     }
 
-    private static void ConfigureCard(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
+    private static void ConfigureCard(
+        ModelBuilder modelBuilder,
+        ValueConverter<DateTimeOffset, DateTime> dtoToUtc,
+        ValueConverter<List<Guid>, string> assigneeIdsConverter,
+        ValueComparer<List<Guid>> assigneeIdsComparer)
     {
         var builder = modelBuilder.Entity<Card>();
 
@@ -163,6 +197,15 @@ public sealed class BoardWriteDbContext : DbContext
         builder.Property(c => c.DueDate)
             .HasConversion(dtoToUtc);
 
+        // Маппим приватное поле _assigneeUserIds в JSON-колонку assignee_user_ids
+        builder.Property<List<Guid>>("_assigneeUserIds")
+            .HasColumnName("assignee_user_ids")
+            .HasConversion(assigneeIdsConverter)
+            .Metadata.SetValueComparer(assigneeIdsComparer);
+        // если хочешь тип json в MySQL:
+        //    .HasColumnType("json");
+
+        // Метки и публичное свойство AssigneeUserIds доменно используются, но EF храним только в backing field
         builder.Ignore(c => c.Labels);
         builder.Ignore(c => c.AssigneeUserIds);
         builder.Ignore(c => c.DomainEvents);
@@ -171,7 +214,9 @@ public sealed class BoardWriteDbContext : DbContext
         builder.HasIndex(c => new { c.BoardId, c.ColumnId, c.Order });
     }
 
-    private static void ConfigureBoardMember(ModelBuilder modelBuilder, ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
+    private static void ConfigureBoardMember(
+        ModelBuilder modelBuilder,
+        ValueConverter<DateTimeOffset, DateTime> dtoToUtc)
     {
         var builder = modelBuilder.Entity<BoardMember>();
 
@@ -221,7 +266,6 @@ public sealed class BoardWriteDbContext : DbContext
             .IsRequired()
             .HasMaxLength(50);
 
-        // FK к доске — через теневое свойство
         builder.Property<Guid>("BoardId")
             .IsRequired();
 

@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using Tasker.BoardWrite.Api.Controllers.Boards.Models;
 using Tasker.BoardWrite.Application.Boards.Commands.AddBoardMember;
 using Tasker.BoardWrite.Application.Boards.Commands.AddColumn;
+using Tasker.BoardWrite.Application.Boards.Commands.AssignMemberToCard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateCard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateLabel;
 using Tasker.BoardWrite.Application.Boards.Commands.MoveCard;
 using Tasker.BoardWrite.Application.Boards.Commands.SetCardDueDate;
+using Tasker.BoardWrite.Application.Boards.Commands.UnassignMemberFromCard;
 using Tasker.BoardWrite.Application.Boards.Commands.UpdateCard;
 using Tasker.BoardWrite.Application.Boards.Queries.GetBoardDetails;
 using Tasker.BoardWrite.Application.Boards.Queries.GetMyBoards;
@@ -238,6 +240,45 @@ public sealed class BoardsController : ControllerBase
         var result = await _mediator.Send(cmd, ct);
 
         return Ok(result);
+    }    /// <summary>
+    /// Назначает участника исполнителем по карточке.
+    /// </summary>
+    [HttpPost("{boardId:guid}/cards/{cardId:guid}/assignees")]
+    [ProducesResponseType(typeof(AssignMemberToCardResult), StatusCodes.Status200OK)]
+    public async Task<ActionResult<AssignMemberToCardResult>> AssignMemberToCard(
+        Guid boardId,
+        Guid cardId,
+        [FromBody] CardAssigneeRequest request,
+        CancellationToken ct)
+    {
+        var cmd = new AssignMemberToCardCommand(
+            BoardId: boardId,
+            CardId: cardId,
+            UserId: request.UserId);
+
+        var result = await _mediator.Send(cmd, ct);
+
+        return Ok(result);
     }
 
+    /// <summary>
+    /// Снимает участника с роли исполнителя по карточке.
+    /// </summary>
+    [HttpPost("{boardId:guid}/cards/{cardId:guid}/assignees/remove")]
+    [ProducesResponseType(typeof(UnassignMemberFromCardResult), StatusCodes.Status200OK)]
+    public async Task<ActionResult<UnassignMemberFromCardResult>> UnassignMemberFromCard(
+        Guid boardId,
+        Guid cardId,
+        [FromBody] CardAssigneeRequest request,
+        CancellationToken ct)
+    {
+        var cmd = new UnassignMemberFromCardCommand(
+            BoardId: boardId,
+            CardId: cardId,
+            UserId: request.UserId);
+
+        var result = await _mediator.Send(cmd, ct);
+
+        return Ok(result);
+    }
 }
