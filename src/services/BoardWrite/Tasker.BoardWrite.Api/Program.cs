@@ -13,6 +13,7 @@ using Tasker.BoardWrite.Application.Abstractions.Persistence;
 using Tasker.BoardWrite.Application.Abstractions.Security;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Infrastructure;
+using Tasker.BoardWrite.Infrastructure.Integration;
 using Tasker.BoardWrite.Infrastructure.Persistence;
 using Tasker.BoardWrite.Infrastructure.Security;
 using Tasker.Shared.Kafka.Extensions;
@@ -76,8 +77,6 @@ builder.Services
         .AddRuntimeInstrumentation()
         .AddPrometheusExporter());
 
-builder.Services.AddKafkaCore(builder.Configuration);
-
 var conn = builder.Configuration.GetConnectionString("BoardWrite")
            ?? builder.Configuration["ConnectionStrings:BoardWrite"]
            ?? "Server=mysql;Port=3306;Database=tasker;User=tasker;Password=tasker;TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;";
@@ -92,6 +91,9 @@ builder.Services.AddDbContext<BoardWriteDbContext>(opt =>
         .EnableSensitiveDataLogging()
         .LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, LogLevel.Information);
 });
+
+
+builder.Services.AddKafkaCore(builder.Configuration);
 
 builder.Services.AddScoped<IBoardRepository, BoardRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -114,6 +116,9 @@ builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
 
 builder.Services.AddScoped<IAccessTokenValidator, RedisAccessTokenValidator>();
 builder.Services.AddScoped<IBoardAccessService, BoardAccessService>();
+
+builder.Services.AddSingleton<IDomainEventToIntegrationEventMapper, BoardWriteDomainEventMapper>();
+builder.Services.AddScoped<IIntegrationEventPublisher, KafkaIntegrationEventPublisher>();
 
 builder.Services
     .AddAuthentication(AccessTokenAuthenticationHandler.SchemeName)

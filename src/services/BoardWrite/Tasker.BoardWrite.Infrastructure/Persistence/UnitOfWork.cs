@@ -1,45 +1,69 @@
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Tasker.BoardWrite.Infrastructure.Integration;
+using Tasker.Shared.Kafka.Interfaces;
 using Tasker.Shared.Kernel.Abstractions;
 
 namespace Tasker.BoardWrite.Infrastructure.Persistence;
 
 public sealed class UnitOfWork : IUnitOfWork
 {
-    private readonly BoardWriteDbContext _dbContext;
+    private readonly BoardWriteDbContext _db;
+    private readonly IEventProducer _eventProducer;
+    private readonly IDomainEventToIntegrationEventMapper _mapper;
     private readonly ILogger<UnitOfWork> _logger;
 
-    public UnitOfWork(BoardWriteDbContext dbContext, ILogger<UnitOfWork> logger)
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    public UnitOfWork(
+        BoardWriteDbContext db,
+        IEventProducer eventProducer,
+        IDomainEventToIntegrationEventMapper mapper,
+        ILogger<UnitOfWork> logger)
     {
-        _dbContext = dbContext;
+        _db = db;
+        _eventProducer = eventProducer;
+        _mapper = mapper;
         _logger = logger;
     }
 
-    public async Task<int> SaveChangesAsync(CancellationToken ct = default)
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await _dbContext.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateConcurrencyException ex)
-        {
-            foreach (var entry in ex.Entries)
-            {
-                _logger.LogError(
-                    ex,
-                    "DbUpdateConcurrencyException for entity {EntityType} with state {State}. Key: {KeyValues}",
-                    entry.Metadata.ClrType.Name,
-                    entry.State,
-                    string.Join(", ",
-                        entry.Properties
-                            .Where(p => p.Metadata.IsPrimaryKey())
-                            .Select(p => $"{p.Metadata.Name}={p.CurrentValue}"))
-                );
-            }
+        var domainEntities = _db.ChangeTracker
+            .Entries<Entity>()
+            .Where(e => e.Entity.DomainEvents.Any())
+            .ToList();
 
-            throw;
+        var integrationMessages = domainEntities
+            .SelectMany(e => e.Entity.DomainEvents)
+            .SelectMany(_mapper.Map)
+            .ToList();
+
+        var result = await _db.SaveChangesAsync(cancellationToken);
+
+        foreach (var msg in integrationMessages)
+        {
+            var payloadBytes = JsonSerializer.SerializeToUtf8Bytes(msg.Payload, JsonOptions);
+
+            try
+            {
+                await _eventProducer.ProduceAsync(msg.Topic, msg.Key, payloadBytes, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to publish integration event to topic {Topic} with key {Key}",
+                    msg.Topic,
+                    msg.Key);
+                throw;
+            }
         }
+
+        foreach (var entityEntry in domainEntities)
+        {
+            entityEntry.Entity.ClearDomainEvents();
+        }
+
+        return result;
     }
 }

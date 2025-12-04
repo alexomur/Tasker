@@ -1,3 +1,4 @@
+using Tasker.BoardWrite.Domain.Events.CardEvents;
 using Tasker.Shared.Kernel.Abstractions;
 
 namespace Tasker.BoardWrite.Domain.Boards;
@@ -157,18 +158,18 @@ public sealed class Card : Entity
         Touch(now);
     }
 
-    /// <summary>
-    /// Устанавливает или сбрасывает дедлайн карточки.
-    /// </summary>
     public void SetDueDate(DateTimeOffset? dueDate, DateTimeOffset now)
     {
         DueDate = dueDate;
         Touch(now);
+
+        AddEvent(new CardDueDateChanged(
+            BoardId: BoardId,
+            CardId: Id,
+            NewDueDate: DueDate,
+            OccurredAt: now));
     }
 
-    /// <summary>
-    /// Назначает пользователя исполнителем по карточке.
-    /// </summary>
     public void AssignUser(Guid userId, DateTimeOffset now)
     {
         if (userId == Guid.Empty)
@@ -179,15 +180,26 @@ public sealed class Card : Entity
 
         _assigneeUserIds.Add(userId);
         Touch(now);
+
+        AddEvent(new CardAssigneesChanged(
+            BoardId: BoardId,
+            CardId: Id,
+            AssigneeUserIds: _assigneeUserIds.ToArray(),
+            OccurredAt: now));
     }
 
-    /// <summary>
-    /// Убирает пользователя из исполнителей по карточке.
-    /// </summary>
     public void UnassignUser(Guid userId, DateTimeOffset now)
     {
-        if (_assigneeUserIds.Remove(userId))
-            Touch(now);
+        if (!_assigneeUserIds.Remove(userId))
+            return;
+
+        Touch(now);
+
+        AddEvent(new CardAssigneesChanged(
+            BoardId: BoardId,
+            CardId: Id,
+            AssigneeUserIds: _assigneeUserIds.ToArray(),
+            OccurredAt: now));
     }
 
     private void Touch(DateTimeOffset now) => UpdatedAt = now;

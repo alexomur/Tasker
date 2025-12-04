@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\shared\Tasker.Shared.Kafka\Tasker.Shared.Kafka.csproj" />
     <ProjectReference Include="..\Tasker.BoardWrite.Application\Tasker.BoardWrite.Application.csproj" />
     <ProjectReference Include="..\Tasker.BoardWrite.Domain\Tasker.BoardWrite.Domain.csproj" />
     <ProjectReference Include="..\..\..\shared\Tasker.Shared.Kernel\Tasker.Shared.Kernel.csproj" />
