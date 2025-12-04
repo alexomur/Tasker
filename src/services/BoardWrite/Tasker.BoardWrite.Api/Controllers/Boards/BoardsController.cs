@@ -7,6 +7,7 @@ using Tasker.BoardWrite.Application.Boards.Commands.AddColumn;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateCard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateLabel;
+using Tasker.BoardWrite.Application.Boards.Commands.MoveCard;
 using Tasker.BoardWrite.Application.Boards.Commands.UpdateCard;
 using Tasker.BoardWrite.Application.Boards.Queries.GetBoardDetails;
 using Tasker.BoardWrite.Application.Boards.Queries.GetMyBoards;
@@ -190,6 +191,27 @@ public sealed class BoardsController : ControllerBase
             CardId: cardId,
             Title: request.Title,
             Description: request.Description);
+
+        var result = await _mediator.Send(cmd, ct);
+
+        return Ok(result);
+    }
+    
+    /// <summary>
+    /// Перемещает карточку в другую колонку.
+    /// </summary>
+    [HttpPost("{boardId:guid}/cards/{cardId:guid}/move")]
+    [ProducesResponseType(typeof(MoveCardResult), StatusCodes.Status200OK)]
+    public async Task<ActionResult<MoveCardResult>> MoveCard(
+        Guid boardId,
+        Guid cardId,
+        [FromBody] MoveCardRequest request,
+        CancellationToken ct)
+    {
+        var cmd = new MoveCardCommand(
+            BoardId: boardId,
+            CardId: cardId,
+            TargetColumnId: request.TargetColumnId);
 
         var result = await _mediator.Send(cmd, ct);
 
