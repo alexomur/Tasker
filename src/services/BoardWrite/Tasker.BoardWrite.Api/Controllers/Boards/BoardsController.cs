@@ -7,6 +7,7 @@ using Tasker.BoardWrite.Application.Boards.Commands.AddColumn;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateCard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateLabel;
+using Tasker.BoardWrite.Application.Boards.Commands.UpdateCard;
 using Tasker.BoardWrite.Application.Boards.Queries.GetBoardDetails;
 using Tasker.BoardWrite.Application.Boards.Queries.GetMyBoards;
 
@@ -171,5 +172,27 @@ public sealed class BoardsController : ControllerBase
         return Created(
             $"/api/v1/boards/{boardId}/cards/{result.CardId}",
             result);
+    }
+    
+    /// <summary>
+    /// Обновляет существующую карточку в рамках доски.
+    /// </summary>
+    [HttpPut("{boardId:guid}/cards/{cardId:guid}")]
+    [ProducesResponseType(typeof(UpdateCardResult), StatusCodes.Status200OK)]
+    public async Task<ActionResult<UpdateCardResult>> UpdateCard(
+        Guid boardId,
+        Guid cardId,
+        [FromBody] UpdateCardRequest request,
+        CancellationToken ct)
+    {
+        var cmd = new UpdateCardCommand(
+            BoardId: boardId,
+            CardId: cardId,
+            Title: request.Title,
+            Description: request.Description);
+
+        var result = await _mediator.Send(cmd, ct);
+
+        return Ok(result);
     }
 }
