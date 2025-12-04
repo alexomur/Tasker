@@ -1,0 +1,302 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import type { BoardListItem } from "../types/board";
+import { getMyBoards, createBoard } from "../api/boards";
+import { useAuth } from "../auth/AuthContext";
+
+export default function BoardsPage() {
+  const [boards, setBoards] = useState<BoardListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [newTitle, setNewTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  async function loadBoards() {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await getMyBoards();
+      setBoards(data);
+    } catch (err) {
+      console.error("Не удалось загрузить список досок", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Не удалось загрузить список досок.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadBoards();
+  }, []);
+
+  function handleOpenBoard(id: string) {
+    navigate(`/boards/${id}`);
+  }
+
+  async function handleCreateBoard(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const title = newTitle.trim();
+    const description = newDescription.trim();
+
+    if (!title) {
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      await createBoard({
+        title,
+        description: description || null,
+      });
+
+      setNewTitle("");
+      setNewDescription("");
+
+      await loadBoards();
+    } catch (err) {
+      console.error("Не удалось создать доску", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Не удалось создать доску.";
+      alert(message);
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  function handleLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
+
+  function formatRole(role: number): string {
+    switch (role) {
+      case 0:
+        return "Owner";
+      case 1:
+        return "Admin";
+      case 2:
+        return "Member";
+      case 3:
+        return "Viewer";
+      default:
+        return `Unknown (${role})`;
+    }
+  }
+
+  const pageContainerStyle: React.CSSProperties = {
+    minHeight: "100vh",
+    backgroundColor: "#f4f5f7",
+  };
+
+  const pageInnerStyle: React.CSSProperties = {
+    maxWidth: "1200px",
+    margin: "0 auto",
+    padding: "24px 16px",
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  };
+
+  const headerStyle: React.CSSProperties = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "24px",
+  };
+
+  const titleStyle: React.CSSProperties = {
+    margin: 0,
+    fontSize: "24px",
+  };
+
+  const logoutButtonStyle: React.CSSProperties = {
+    padding: "6px 12px",
+    borderRadius: "4px",
+    border: "none",
+    backgroundColor: "#d32f2f",
+    color: "#ffffff",
+    fontSize: "13px",
+    cursor: "pointer",
+  };
+
+  const createFormContainerStyle: React.CSSProperties = {
+    marginBottom: "24px",
+    padding: "12px 14px",
+    borderRadius: "8px",
+    backgroundColor: "#ffffff",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+  };
+
+  const createFormTitleStyle: React.CSSProperties = {
+    margin: "0 0 8px 0",
+    fontSize: "16px",
+  };
+
+  const createFormStyle: React.CSSProperties = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+    alignItems: "center",
+  };
+
+  const inputStyle: React.CSSProperties = {
+    padding: "6px 8px",
+    borderRadius: "4px",
+    border: "1px solid #ccc",
+    fontSize: "14px",
+  };
+
+  const createButtonStyle: React.CSSProperties = {
+    padding: "6px 12px",
+    borderRadius: "4px",
+    border: "none",
+    backgroundColor: "#0052cc",
+    color: "#ffffff",
+    fontSize: "14px",
+    cursor: "pointer",
+  };
+
+  const listStyle: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+    gap: "16px",
+  };
+
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: "#ffffff",
+    borderRadius: "12px",
+    padding: "12px 14px",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+    border: "1px solid #ddd",
+  };
+
+  const cardTitleStyle: React.CSSProperties = {
+    margin: 0,
+    fontSize: "16px",
+    fontWeight: 600,
+  };
+
+  const cardDescriptionStyle: React.CSSProperties = {
+    margin: 0,
+    fontSize: "13px",
+    opacity: 0.85,
+  };
+
+  const cardMetaStyle: React.CSSProperties = {
+    marginTop: "4px",
+    fontSize: "11px",
+    opacity: 0.7,
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+  };
+
+  const emptyStateStyle: React.CSSProperties = {
+    marginTop: "24px",
+    fontSize: "14px",
+    opacity: 0.8,
+  };
+
+  return (
+    <div style={pageContainerStyle}>
+      <div style={pageInnerStyle}>
+        <header style={headerStyle}>
+          <h1 style={titleStyle}>Мои доски</h1>
+          <button
+            type="button"
+            style={logoutButtonStyle}
+            onClick={handleLogout}
+          >
+            Выйти
+          </button>
+        </header>
+
+        <section style={createFormContainerStyle}>
+          <h2 style={createFormTitleStyle}>Создать доску</h2>
+          <form style={createFormStyle} onSubmit={handleCreateBoard}>
+            <input
+              type="text"
+              placeholder="Название доски"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              placeholder="Описание (необязательно)"
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              style={inputStyle}
+            />
+            <button
+              type="submit"
+              disabled={isCreating || !newTitle.trim()}
+              style={createButtonStyle}
+            >
+              {isCreating ? "Создаём..." : "Создать доску"}
+            </button>
+          </form>
+        </section>
+
+        {isLoading && <p>Загрузка…</p>}
+
+        {!isLoading && error && <p>Ошибка: {error}</p>}
+
+        {!isLoading && !error && boards.length === 0 && (
+          <p style={emptyStateStyle}>
+            У вас пока нет досок. Создайте первую через форму выше.
+          </p>
+        )}
+
+        {!isLoading && !error && boards.length > 0 && (
+          <div style={listStyle}>
+            {boards.map((board) => (
+              <button
+                key={board.id}
+                type="button"
+                style={cardStyle}
+                onClick={() => handleOpenBoard(board.id)}
+              >
+                <h2 style={cardTitleStyle}>{board.title}</h2>
+                {board.description && (
+                  <p style={cardDescriptionStyle}>{board.description}</p>
+                )}
+                <div style={cardMetaStyle}>
+                  <span>Роль: {formatRole(board.myRole)}</span>
+                  <span>
+                    Создана:{" "}
+                    {new Date(board.createdAt).toLocaleDateString(
+                      undefined,
+                      {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      }
+                    )}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
