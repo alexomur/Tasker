@@ -8,6 +8,7 @@ using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateCard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateLabel;
 using Tasker.BoardWrite.Application.Boards.Commands.MoveCard;
+using Tasker.BoardWrite.Application.Boards.Commands.SetCardDueDate;
 using Tasker.BoardWrite.Application.Boards.Commands.UpdateCard;
 using Tasker.BoardWrite.Application.Boards.Queries.GetBoardDetails;
 using Tasker.BoardWrite.Application.Boards.Queries.GetMyBoards;
@@ -217,4 +218,26 @@ public sealed class BoardsController : ControllerBase
 
         return Ok(result);
     }
+    
+    /// <summary>
+    /// Устанавливает или сбрасывает дедлайн карточки.
+    /// </summary>
+    [HttpPost("{boardId:guid}/cards/{cardId:guid}/due-date")]
+    [ProducesResponseType(typeof(SetCardDueDateResult), StatusCodes.Status200OK)]
+    public async Task<ActionResult<SetCardDueDateResult>> SetCardDueDate(
+        Guid boardId,
+        Guid cardId,
+        [FromBody] SetCardDueDateRequest request,
+        CancellationToken ct)
+    {
+        var cmd = new SetCardDueDateCommand(
+            BoardId: boardId,
+            CardId: cardId,
+            DueDate: request.DueDate);
+
+        var result = await _mediator.Send(cmd, ct);
+
+        return Ok(result);
+    }
+
 }
