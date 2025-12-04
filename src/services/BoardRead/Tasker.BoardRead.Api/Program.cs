@@ -1,11 +1,23 @@
 using System.Text.Json;
 using Cassandra;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.OpenApi.Models;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using Serilog;
+using StackExchange.Redis;
+using Tasker.BoardRead.Api.Security;
+using Tasker.BoardRead.Application.Boards.Abstractions;
+using Tasker.BoardRead.Infrastructure.Boards;
+using Tasker.BoardWrite.Application.Abstractions.Security;
+using Tasker.BoardWrite.Infrastructure;
+using Tasker.BoardWrite.Infrastructure.Security;
+using Tasker.Shared.Kernel.Abstractions;
 using Tasker.Shared.Kernel.Abstractions.ReadModel;
+using Tasker.Shared.Kernel.Abstractions.Security;
 using Tasker.Shared.ReadModel.Cassandra;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,11 +27,47 @@ builder.Host.UseSerilog((ctx, cfg) => cfg
     .Enrich.FromLogContext());
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+// Swagger + Bearer auth как в BoardWrite
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Tasker BoardRead API",
+        Version = "v1"
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "Token",
+        In = ParameterLocation.Header,
+        Description = "Введите access-токен. Пример: 8CAEB2D5... (без 'Bearer ')"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
 builder.Services.AddProblemDetails();
 
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "live" });
+
 builder.Services
     .AddOpenTelemetry()
     .ConfigureResource(r => r.AddService(builder.Environment.ApplicationName))
@@ -29,7 +77,44 @@ builder.Services
         .AddRuntimeInstrumentation()
         .AddPrometheusExporter());
 
-builder.Services.AddSingleton<global::Cassandra.ISession>(sp =>
+// ---------- Redis / Auth / CurrentUser / Access control ----------
+
+var redisConn = builder.Configuration["Redis:Connection"] ?? "redis:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConn));
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+
+builder.Services.AddScoped<IAccessTokenValidator, RedisAccessTokenValidator>();
+
+builder.Services
+    .AddAuthentication(AccessTokenAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, AccessTokenAuthenticationHandler>(
+        AccessTokenAuthenticationHandler.SchemeName,
+        _ => { });
+
+builder.Services.AddAuthorization();
+
+// ---------- MySQL: BoardWriteDbContext (fallback для read) ----------
+
+var conn = builder.Configuration.GetConnectionString("BoardWrite")
+           ?? builder.Configuration["ConnectionStrings:BoardWrite"]
+           ?? "Server=mysql;Port=3306;Database=tasker;User=tasker;Password=tasker;TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;";
+
+var serverVersion = new MySqlServerVersion(new Version(8, 0, 36));
+
+builder.Services.AddDbContext<BoardWriteDbContext>(opt =>
+{
+    // TODO: Use Repository instead of DbContext
+    opt.UseMySql(conn, serverVersion,
+            mySql => mySql.MigrationsHistoryTable("__EFMigrationsHistory", schema: null))
+        .EnableDetailedErrors()
+        .EnableSensitiveDataLogging();
+});
+
+// ---------- Cassandra: snapshots ----------
+
+builder.Services.AddSingleton<Cassandra.ISession>(sp =>
 {
     var cfg = sp.GetRequiredService<IConfiguration>();
     var host = cfg["Cassandra:Host"] ?? "cassandra";
@@ -43,7 +128,6 @@ builder.Services.AddSingleton<global::Cassandra.ISession>(sp =>
 
     var session = cluster.Connect();
 
-    // На всякий случай убедимся, что keyspace и таблица есть
     session.Execute(@"
         CREATE KEYSPACE IF NOT EXISTS tasker_read
         WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 };
@@ -61,7 +145,30 @@ builder.Services.AddSingleton<global::Cassandra.ISession>(sp =>
 
 builder.Services.AddSingleton<IBoardSnapshotStore, CassandraBoardSnapshotStore>();
 
+// ---------- Access service & read service ----------
+
+builder.Services.AddScoped<IBoardAccessService, BoardAccessService>();
+builder.Services.AddScoped<IBoardDetailsReadService, BoardDetailsReadService>();
+
+// CORS для фронта
+const string frontendCorsPolicy = "FrontendDev";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        frontendCorsPolicy,
+        policy =>
+        {
+            policy
+                .WithOrigins("http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+});
+
 var app = builder.Build();
+
+// CORS до логгирования/авторизации, как в Write
+app.UseCors(frontendCorsPolicy);
 
 app.UseSerilogRequestLogging();
 
@@ -75,15 +182,22 @@ if (app.Environment.IsProduction())
 {
     app.UseHttpsRedirection();
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapPrometheusScrapingEndpoint();
 
-app.MapHealthChecks("/healthz", new HealthCheckOptions {
+app.MapHealthChecks("/healthz", new HealthCheckOptions
+{
     Predicate = r => r.Tags.Contains("live")
 });
 
-app.MapHealthChecks("/readyz", new HealthCheckOptions {
+app.MapHealthChecks("/readyz", new HealthCheckOptions
+{
     Predicate = _ => true,
-    ResultStatusCodes = {
+    ResultStatusCodes =
+    {
         [HealthStatus.Healthy] = StatusCodes.Status200OK,
         [HealthStatus.Degraded] = StatusCodes.Status200OK,
         [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
@@ -91,9 +205,11 @@ app.MapHealthChecks("/readyz", new HealthCheckOptions {
     ResponseWriter = async (ctx, report) =>
     {
         ctx.Response.ContentType = "application/json";
-        var payload = new {
+        var payload = new
+        {
             status = report.Status.ToString(),
-            entries = report.Entries.Select(e => new {
+            entries = report.Entries.Select(e => new
+            {
                 name = e.Key,
                 status = e.Value.Status.ToString(),
                 durationMs = e.Value.Duration.TotalMilliseconds
@@ -106,18 +222,21 @@ app.MapHealthChecks("/readyz", new HealthCheckOptions {
 app.MapGet("/healthz/quick", () => Results.Ok(new { status = "ok" }))
     .WithTags("system");
 
-const int boardSnapshotTtlSeconds = 24 * 60 * 60; // 24 часа
-app.MapGet("/api/v1/boards/{boardId:guid}", async (Guid boardId, IBoardSnapshotStore snapshots) =>
-{
-    var json = await snapshots.TryGetAsync(boardId);
-    if (json is null)
+// ---------- /api/v1/boards/{boardId} ----------
+
+app.MapGet("/api/v1/boards/{boardId:guid}", async (
+        Guid boardId,
+        IBoardDetailsReadService boards,
+        CancellationToken ct) =>
     {
-        return Results.NotFound(new { message = "Board snapshot not found" });
-    }
+        var view = await boards.GetBoardAsync(boardId, ct);
+        if (view is null)
+        {
+            return Results.NotFound(new { message = "Board not found" });
+        }
 
-    await snapshots.UpsertAsync(boardId, json, boardSnapshotTtlSeconds);
-
-    return Results.Content(json, "application/json");
-});
+        return Results.Ok(view);
+    })
+    .RequireAuthorization();
 
 app.Run();

@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\BoardWrite\Tasker.BoardWrite.Application\Tasker.BoardWrite.Application.csproj" />
+    <ProjectReference Include="..\..\BoardWrite\Tasker.BoardWrite.Infrastructure\Tasker.BoardWrite.Infrastructure.csproj" />
     <ProjectReference Include="..\Tasker.BoardRead.Application\Tasker.BoardRead.Application.csproj" />
     <ProjectReference Include="..\Tasker.BoardRead.Domain\Tasker.BoardRead.Domain.csproj" />
     <ProjectReference Include="..\..\..\shared\Tasker.Shared.Kernel\Tasker.Shared.Kernel.csproj" />
@@ -14,6 +16,10 @@
   
   <ItemGroup>
     <PackageReference Include="CassandraCSharpDriver" />
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
   </ItemGroup>
 
 </Project>

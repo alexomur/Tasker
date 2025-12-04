@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using Tasker.Shared.Kernel.Abstractions.Security;
 
-namespace Tasker.BoardWrite.Api.Security
+namespace Tasker.BoardRead.Api.Security
 {
     /// <summary>
     /// Обработчик аутентификации по заголовку Authorization: Bearer {accessToken}.

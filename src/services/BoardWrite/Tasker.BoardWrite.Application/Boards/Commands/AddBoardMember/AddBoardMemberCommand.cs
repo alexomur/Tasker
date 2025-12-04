@@ -1,5 +1,4 @@
-﻿using System;
-using MediatR;
+﻿using MediatR;
 using Tasker.BoardWrite.Domain.Boards;
 
 namespace Tasker.BoardWrite.Application.Boards.Commands.AddBoardMember;
