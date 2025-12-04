@@ -6,6 +6,5 @@
 public sealed class CreateBoardRequest
 {
     public string Title { get; set; } = null!;
-    public Guid OwnerUserId { get; set; }
     public string? Description { get; set; }
 }

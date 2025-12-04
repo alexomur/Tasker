@@ -1,8 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Tasker.BoardWrite.Application.Abstractions.Security;
 using Tasker.BoardWrite.Domain.Boards;
 using Tasker.BoardWrite.Domain.Errors;
