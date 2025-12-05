@@ -25,6 +25,7 @@
         <ProjectReference Include="..\..\src\services\BoardWrite\Tasker.BoardWrite.Domain\Tasker.BoardWrite.Domain.csproj" />
         <ProjectReference Include="..\..\src\services\BoardWrite\Tasker.BoardWrite.Infrastructure\Tasker.BoardWrite.Infrastructure.csproj" />
         <ProjectReference Include="..\..\src\shared\Tasker.Shared.Kernel\Tasker.Shared.Kernel.csproj" />
+        <ProjectReference Include="..\..\src\services\BoardWrite\Tasker.BoardWrite.Application\Tasker.BoardWrite.Application.csproj" />
     </ItemGroup>
 
 </Project>
