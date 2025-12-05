@@ -31,6 +31,7 @@
         <ProjectReference Include="..\..\src\shared\Tasker.Shared.ReadModel\Tasker.Shared.ReadModel.csproj" />
         <ProjectReference Include="..\..\src\services\BoardRead\Tasker.BoardRead.Application\Tasker.BoardRead.Application.csproj" />
         <ProjectReference Include="..\..\src\services\BoardRead\Tasker.BoardRead.Infrastructure\Tasker.BoardRead.Infrastructure.csproj" />
+        <ProjectReference Include="..\..\src\services\BoardWrite\Tasker.BoardWrite.Infrastructure\Tasker.BoardWrite.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>
