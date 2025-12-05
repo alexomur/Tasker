@@ -234,4 +234,79 @@ public class CardTests
         // Assert
         act.Should().Throw<ArgumentException>();
     }
+    
+        [Fact]
+    public void ChangeDescription_ShouldNormalizeAndUpdateTimestamp()
+    {
+        // Arrange
+        var now = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var card = Card.Create(
+            boardId: Guid.NewGuid(),
+            columnId: Guid.NewGuid(),
+            title: "Card",
+            createdByUserId: Guid.NewGuid(),
+            order: 1,
+            now: now,
+            description: "  Old desc  ");
+
+        var newTime = now.AddMinutes(1);
+
+        // Act
+        card.ChangeDescription("  New description  ", newTime);
+
+        // Assert
+        card.Description.Should().Be("New description");
+        card.UpdatedAt.Should().Be(newTime);
+    }
+
+    [Fact]
+    public void MoveToColumn_ShouldChangeColumnAndOrderAndUpdateTimestamp()
+    {
+        // Arrange
+        var now = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var boardId = Guid.NewGuid();
+        var sourceColumnId = Guid.NewGuid();
+        var targetColumnId = Guid.NewGuid();
+
+        var card = Card.Create(
+            boardId: boardId,
+            columnId: sourceColumnId,
+            title: "Card",
+            createdByUserId: Guid.NewGuid(),
+            order: 1,
+            now: now);
+
+        var moveTime = now.AddMinutes(2);
+
+        // Act
+        card.MoveToColumn(targetColumnId, newOrder: 10, moveTime);
+
+        // Assert
+        card.ColumnId.Should().Be(targetColumnId);
+        card.Order.Should().Be(10);
+        card.UpdatedAt.Should().Be(moveTime);
+    }
+
+    [Fact]
+    public void Reorder_ShouldChangeOrderAndUpdateTimestamp()
+    {
+        // Arrange
+        var now = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var card = Card.Create(
+            boardId: Guid.NewGuid(),
+            columnId: Guid.NewGuid(),
+            title: "Card",
+            createdByUserId: Guid.NewGuid(),
+            order: 1,
+            now: now);
+
+        var reorderTime = now.AddMinutes(3);
+
+        // Act
+        card.Reorder(newOrder: 42, reorderTime);
+
+        // Assert
+        card.Order.Should().Be(42);
+        card.UpdatedAt.Should().Be(reorderTime);
+    }
 }

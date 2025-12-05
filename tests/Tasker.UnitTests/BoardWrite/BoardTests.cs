@@ -181,4 +181,99 @@ public class BoardTests
 
         board.Cards.Should().HaveCount(3);
     }
+    
+    [Fact]
+    public void ArchiveAndRestore_ShouldToggleFlagAndUpdateTimestamp()
+    {
+        // Arrange
+        var now = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var ownerId = Guid.NewGuid();
+        var board = Board.Create("Board", ownerId, now);
+
+        var archiveTime = now.AddMinutes(5);
+        var restoreTime = now.AddMinutes(10);
+
+        // Act
+        board.Archive(archiveTime);
+
+        // Assert
+        board.IsArchived.Should().BeTrue();
+        board.UpdatedAt.Should().Be(archiveTime);
+
+        // Act
+        board.Restore(restoreTime);
+
+        // Assert
+        board.IsArchived.Should().BeFalse();
+        board.UpdatedAt.Should().Be(restoreTime);
+    }
+
+    [Fact]
+    public void MoveCard_ShouldChangeColumnAndOrderAndUpdateTimestamp()
+    {
+        // Arrange
+        var now = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var ownerId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        var board = Board.Create("Board", ownerId, now);
+        var columnFrom = board.AddColumn("From", now.AddMinutes(1));
+        var columnTo = board.AddColumn("To", now.AddMinutes(2));
+
+        var card = board.CreateCard(columnFrom.Id, "Card", userId, now.AddMinutes(3));
+
+        var moveTime = now.AddMinutes(4);
+
+        // Act
+        board.MoveCard(card.Id, columnTo.Id, targetOrder: 100, moveTime);
+
+        // Assert
+        card.ColumnId.Should().Be(columnTo.Id);
+        card.Order.Should().Be(100);
+        board.UpdatedAt.Should().Be(moveTime);
+    }
+
+    [Fact]
+    public void ReorderCard_ShouldChangeOrderAndUpdateTimestamp()
+    {
+        // Arrange
+        var now = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var ownerId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        var board = Board.Create("Board", ownerId, now);
+        var column = board.AddColumn("Col", now.AddMinutes(1));
+        var card = board.CreateCard(column.Id, "Card", userId, now.AddMinutes(2));
+
+        var reorderTime = now.AddMinutes(3);
+
+        // Act
+        board.ReorderCard(card.Id, newOrder: 50, reorderTime);
+
+        // Assert
+        card.Order.Should().Be(50);
+        board.UpdatedAt.Should().Be(reorderTime);
+    }
+
+    [Fact]
+    public void RemoveCard_ShouldRemoveCardAndUpdateTimestamp()
+    {
+        // Arrange
+        var now = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var ownerId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        var board = Board.Create("Board", ownerId, now);
+        var column = board.AddColumn("Col", now.AddMinutes(1));
+        var card = board.CreateCard(column.Id, "Card", userId, now.AddMinutes(2));
+
+        var removeTime = now.AddMinutes(3);
+
+        // Act
+        board.RemoveCard(card.Id, removeTime);
+
+        // Assert
+        board.Cards.Should().NotContain(c => c.Id == card.Id);
+        board.UpdatedAt.Should().Be(removeTime);
+    }
 }

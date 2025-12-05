@@ -298,7 +298,7 @@ public sealed class Board : Entity
     /// <param name="now">Текущее время в формате UTC.</param>
     public void MoveCard(Guid cardId, Guid targetColumnId, int? targetOrder, DateTimeOffset now)
     {
-        var card = _cards.FirstOrDefault(c => c.Id == cardId && c.Id == Id);
+        var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card is null)
             throw new InvalidOperationException("Карточка не найдена на доске.");
 
@@ -324,7 +324,7 @@ public sealed class Board : Entity
     /// <param name="now">Текущее время в формате UTC.</param>
     public void ReorderCard(Guid cardId, int newOrder, DateTimeOffset now)
     {
-        var card = _cards.FirstOrDefault(c => c.Id == cardId && c.Id == Id);
+        var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card is null)
             throw new InvalidOperationException("Карточка не найдена на доске.");
 
@@ -339,7 +339,7 @@ public sealed class Board : Entity
     /// <param name="now">Текущее время в формате UTC.</param>
     public void RemoveCard(Guid cardId, DateTimeOffset now)
     {
-        var card = _cards.FirstOrDefault(c => c.Id == cardId && c.Id == Id);
+        var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card is null)
             return;
 
