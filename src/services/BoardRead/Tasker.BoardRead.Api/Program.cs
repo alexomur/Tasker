@@ -145,12 +145,13 @@ builder.Services.AddSingleton<Cassandra.ISession>(sp =>
 
 builder.Services.AddSingleton<IBoardSnapshotStore, CassandraBoardSnapshotStore>();
 
-// ---------- Access service & read service ----------
+// ---------- Access service & read services ----------
 
 builder.Services.AddScoped<IBoardAccessService, BoardAccessService>();
 builder.Services.AddScoped<IBoardDetailsReadService, BoardDetailsReadService>();
+builder.Services.AddScoped<IBoardListReadService, BoardListReadService>();
 
-// CORS для фронта
+// CORS для фронта (как в BoardWrite)
 const string frontendCorsPolicy = "FrontendDev";
 builder.Services.AddCors(options =>
 {
@@ -236,6 +237,23 @@ app.MapGet("/api/v1/boards/{boardId:guid}", async (
         }
 
         return Results.Ok(view);
+    })
+    .RequireAuthorization();
+
+// ---------- /api/v1/boards?mine=true ----------
+
+app.MapGet("/api/v1/boards", async (
+        bool mine,
+        IBoardListReadService boards,
+        CancellationToken ct) =>
+    {
+        if (!mine)
+        {
+            return Results.BadRequest(new { message = "Only /api/v1/boards?mine=true is supported for now." });
+        }
+
+        var list = await boards.GetMyBoardsAsync(ct);
+        return Results.Ok(list);
     })
     .RequireAuthorization();
 
