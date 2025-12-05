@@ -90,7 +90,7 @@ public sealed class Card : Entity
         BoardId = boardId;
         ColumnId = columnId;
         Title = title.Trim();
-        Description = description;
+        Description = NormalizeDescription(description);
         CreatedByUserId = createdByUserId;
         Order = order;
         CreatedAt = now;
@@ -132,7 +132,7 @@ public sealed class Card : Entity
     /// </summary>
     public void ChangeDescription(string? description, DateTimeOffset now)
     {
-        Description = description;
+        Description = NormalizeDescription(description);
         Touch(now);
     }
 
@@ -203,4 +203,9 @@ public sealed class Card : Entity
     }
 
     private void Touch(DateTimeOffset now) => UpdatedAt = now;
+    
+    private static string? NormalizeDescription(string? description)
+    {
+        return string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+    }
 }
