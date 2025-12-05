@@ -25,8 +25,11 @@
         <ProjectReference Include="..\..\src\services\BoardWrite\Tasker.BoardWrite.Domain\Tasker.BoardWrite.Domain.csproj" />
         <ProjectReference Include="..\..\src\services\BoardWrite\Tasker.BoardWrite.Infrastructure\Tasker.BoardWrite.Infrastructure.csproj" />
         <ProjectReference Include="..\..\src\services\BoardWrite\Tasker.BoardWrite.Application\Tasker.BoardWrite.Application.csproj" />
-        <ProjectReference Include="..\..\src\shared\Tasker.Shared.Kernel\Tasker.Shared.Kernel.csproj" />
         <ProjectReference Include="..\..\src\services\Auth\Tasker.Auth.Domain\Tasker.Auth.Domain.csproj" />
+        <ProjectReference Include="..\..\src\shared\Tasker.Shared.Kernel\Tasker.Shared.Kernel.csproj" />
+        <ProjectReference Include="..\..\src\shared\Tasker.Shared.ReadModel\Tasker.Shared.ReadModel.csproj" />
+        <ProjectReference Include="..\..\src\services\BoardRead\Tasker.BoardRead.Application\Tasker.BoardRead.Application.csproj" />
+        <ProjectReference Include="..\..\src\services\BoardRead\Tasker.BoardRead.Infrastructure\Tasker.BoardRead.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>
