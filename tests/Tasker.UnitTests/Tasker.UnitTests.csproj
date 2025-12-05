@@ -23,6 +23,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\services\BoardWrite\Tasker.BoardWrite.Domain\Tasker.BoardWrite.Domain.csproj" />
+        <ProjectReference Include="..\..\src\services\Auth\Tasker.Auth.Application\Tasker.Auth.Application.csproj" />
         <ProjectReference Include="..\..\src\services\BoardWrite\Tasker.BoardWrite.Infrastructure\Tasker.BoardWrite.Infrastructure.csproj" />
         <ProjectReference Include="..\..\src\services\BoardWrite\Tasker.BoardWrite.Application\Tasker.BoardWrite.Application.csproj" />
         <ProjectReference Include="..\..\src\services\Auth\Tasker.Auth.Domain\Tasker.Auth.Domain.csproj" />
