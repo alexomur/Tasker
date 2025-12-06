@@ -12,6 +12,7 @@ export default function BoardsPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [newTemplateCode, setNewTemplateCode] = useState<string>("");
 
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -59,6 +60,7 @@ export default function BoardsPage() {
       await createBoard({
         title,
         description: description || null,
+        templateCode: newTemplateCode || null,
       });
 
       setNewTitle("");
@@ -230,29 +232,40 @@ export default function BoardsPage() {
 
         <section style={createFormContainerStyle}>
           <h2 style={createFormTitleStyle}>Создать доску</h2>
-          <form style={createFormStyle} onSubmit={handleCreateBoard}>
+            <form style={createFormStyle} onSubmit={handleCreateBoard}>
             <input
-              type="text"
-              placeholder="Название доски"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              style={inputStyle}
+                type="text"
+                placeholder="Название доски"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                style={inputStyle}
             />
             <input
-              type="text"
-              placeholder="Описание (необязательно)"
-              value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
-              style={inputStyle}
+                type="text"
+                placeholder="Описание (необязательно)"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                style={inputStyle}
             />
-            <button
-              type="submit"
-              disabled={isCreating || !newTitle.trim()}
-              style={createButtonStyle}
+            <select
+                value={newTemplateCode}
+                onChange={(e) => setNewTemplateCode(e.target.value)}
+                style={inputStyle}
             >
-              {isCreating ? "Создаём..." : "Создать доску"}
+                <option value="">Пустая доска</option>
+                <option value="default/software">Канбан: разработка</option>
+                <option value="gamedev/feature">Геймдев: фичи</option>
+                <option value="gamedev/content">Геймдев: контент-пайплайн</option>
+            </select>
+            <button
+                type="submit"
+                disabled={isCreating || !newTitle.trim()}
+                style={createButtonStyle}
+            >
+                {isCreating ? "Создаём..." : "Создать доску"}
             </button>
-          </form>
+            </form>
+
         </section>
 
         {isLoading && <p>Загрузка…</p>}

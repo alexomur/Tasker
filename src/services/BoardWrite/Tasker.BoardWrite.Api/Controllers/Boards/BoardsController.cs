@@ -63,7 +63,8 @@ public sealed class BoardsController : ControllerBase
     {
         var cmd = new CreateBoardCommand(
             Title: request.Title,
-            Description: request.Description);
+            Description: request.Description,
+            TemplateCode: request.TemplateCode);
 
         var result = await _mediator.Send(cmd, ct);
 

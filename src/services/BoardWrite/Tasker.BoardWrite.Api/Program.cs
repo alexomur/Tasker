@@ -13,7 +13,9 @@ using Tasker.BoardWrite.Api.Security;
 using Tasker.BoardWrite.Application.Abstractions.Persistence;
 using Tasker.BoardWrite.Application.Abstractions.ReadModel;
 using Tasker.BoardWrite.Application.Abstractions.Security;
+using Tasker.BoardWrite.Application.Abstractions.Services;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
+using Tasker.BoardWrite.Application.Boards.Templates;
 using Tasker.BoardWrite.Infrastructure;
 using Tasker.BoardWrite.Infrastructure.Integration;
 using Tasker.BoardWrite.Infrastructure.Persistence;
@@ -128,6 +130,7 @@ builder.Services.AddScoped<IIntegrationEventPublisher, KafkaIntegrationEventPubl
 
 builder.Services.AddScoped<IBoardReadModelWriter, BoardReadModelWriter>();
 
+builder.Services.AddScoped<IBoardTemplateService, BoardTemplateService>();
 
 builder.Services
     .AddAuthentication(AccessTokenAuthenticationHandler.SchemeName)

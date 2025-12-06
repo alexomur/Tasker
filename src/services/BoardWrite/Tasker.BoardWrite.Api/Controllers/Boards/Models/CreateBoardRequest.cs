@@ -1,10 +1,10 @@
 ﻿namespace Tasker.BoardWrite.Api.Controllers.Boards.Models;
 
 /// <summary>
-/// Запрос на создание доски.
+/// Тело запроса для создания доски.
 /// </summary>
-public sealed class CreateBoardRequest
-{
-    public string Title { get; set; } = null!;
-    public string? Description { get; set; }
-}
+public sealed record CreateBoardRequest(
+    string Title,
+    string? Description,
+    string? TemplateCode
+);

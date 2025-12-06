@@ -123,6 +123,7 @@ export function addBoardMember(
 export interface CreateBoardPayload {
   title: string;
   description?: string | null;
+  templateCode?: string | null;
 }
 
 export interface CreateBoardResult {
