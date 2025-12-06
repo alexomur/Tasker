@@ -813,7 +813,7 @@ function ColumnView({
                       type="button"
                       style={cardMoveButtonStyle}
                       onClick={() => onMoveCardRight(card)}
-                      title="Переместить в колонку правее"
+                      title="Перевести карточку дальше по пайплайну"
                     >
                       →
                     </button>

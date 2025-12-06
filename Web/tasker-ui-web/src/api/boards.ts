@@ -9,6 +9,18 @@ export function getMyBoards(): Promise<BoardListItem[]> {
   return httpReadClient.get<BoardListItem[]>("/api/v1/boards?mine=true");
 }
 
+export interface BoardTemplate {
+  code: string;
+  name: string;
+  description: string;
+  category: string;
+  tags: string[];
+}
+
+export function getBoardTemplates(): Promise<BoardTemplate[]> {
+  return httpWriteClient.get<BoardTemplate[]>("/api/v1/boards/templates");
+}
+
 export interface AddColumnPayload {
   title: string;
   description?: string | null;

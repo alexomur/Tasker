@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { BoardListItem } from "../types/board";
-import { getMyBoards, createBoard } from "../api/boards";
+import { getMyBoards, createBoard, getBoardTemplates } from "../api/boards";
+import type { BoardTemplate } from "../api/boards";
 import { useAuth } from "../auth/AuthContext";
 
 export default function BoardsPage() {
   const [boards, setBoards] = useState<BoardListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<BoardTemplate[]>([]);
+  const [isTemplatesLoading, setIsTemplatesLoading] = useState(false);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
 
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -36,8 +40,28 @@ export default function BoardsPage() {
     }
   }
 
+  async function loadTemplates() {
+    setIsTemplatesLoading(true);
+    setTemplatesError(null);
+
+    try {
+      const data = await getBoardTemplates();
+      setTemplates(data);
+    } catch (err) {
+      console.error("Не удалось загрузить список шаблонов", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Не удалось загрузить список шаблонов.";
+      setTemplatesError(message);
+    } finally {
+      setIsTemplatesLoading(false);
+    }
+  }
+
   useEffect(() => {
     void loadBoards();
+    void loadTemplates();
   }, []);
 
   function handleOpenBoard(id: string) {
@@ -70,9 +94,7 @@ export default function BoardsPage() {
     } catch (err) {
       console.error("Не удалось создать доску", err);
       const message =
-        err instanceof Error
-          ? err.message
-          : "Не удалось создать доску.";
+        err instanceof Error ? err.message : "Не удалось создать доску.";
       alert(message);
     } finally {
       setIsCreating(false);
@@ -232,40 +254,45 @@ export default function BoardsPage() {
 
         <section style={createFormContainerStyle}>
           <h2 style={createFormTitleStyle}>Создать доску</h2>
-            <form style={createFormStyle} onSubmit={handleCreateBoard}>
+          <form style={createFormStyle} onSubmit={handleCreateBoard}>
             <input
-                type="text"
-                placeholder="Название доски"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                style={inputStyle}
+              type="text"
+              placeholder="Название доски"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              style={inputStyle}
             />
             <input
-                type="text"
-                placeholder="Описание (необязательно)"
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                style={inputStyle}
+              type="text"
+              placeholder="Описание (необязательно)"
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              style={inputStyle}
             />
             <select
-                value={newTemplateCode}
-                onChange={(e) => setNewTemplateCode(e.target.value)}
-                style={inputStyle}
+              value={newTemplateCode}
+              onChange={(e) => setNewTemplateCode(e.target.value)}
+              style={inputStyle}
+              disabled={isTemplatesLoading}
             >
-                <option value="">Пустая доска</option>
-                <option value="default/software">Канбан: разработка</option>
-                <option value="gamedev/feature">Геймдев: фичи</option>
-                <option value="gamedev/content">Геймдев: контент-пайплайн</option>
+              <option value="">Пустая доска</option>
+              {templates.map((t) => (
+                <option key={t.code} value={t.code}>
+                  {t.name}
+                </option>
+              ))}
             </select>
             <button
-                type="submit"
-                disabled={isCreating || !newTitle.trim()}
-                style={createButtonStyle}
+              type="submit"
+              disabled={isCreating || !newTitle.trim()}
+              style={createButtonStyle}
             >
-                {isCreating ? "Создаём..." : "Создать доску"}
+              {isCreating ? "Создаём..." : "Создать доску"}
             </button>
-            </form>
-
+          </form>
+          {templatesError && !isTemplatesLoading && (
+            <p>Не удалось загрузить шаблоны: {templatesError}</p>
+          )}
         </section>
 
         {isLoading && <p>Загрузка…</p>}
