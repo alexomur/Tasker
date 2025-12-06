@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Auth\Tasker.Auth.Infrastructure\Tasker.Auth.Infrastructure.csproj" />
     <ProjectReference Include="..\..\BoardWrite\Tasker.BoardWrite.Application\Tasker.BoardWrite.Application.csproj" />
     <ProjectReference Include="..\..\BoardWrite\Tasker.BoardWrite.Infrastructure\Tasker.BoardWrite.Infrastructure.csproj" />
     <ProjectReference Include="..\Tasker.BoardRead.Application\Tasker.BoardRead.Application.csproj" />

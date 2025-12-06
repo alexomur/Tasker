@@ -1,3 +1,10 @@
+// Общее представление пользователя, приходящее из BoardRead (UserView)
+export interface UserView {
+  id: string;
+  displayName: string;
+  email: string;
+}
+
 export interface BoardDetails {
   id: string;
   title: string;
@@ -10,6 +17,17 @@ export interface BoardDetails {
   members: BoardMember[];
   labels: BoardLabel[];
   cards: BoardCard[];
+
+  /**
+   * Пользователи, связанные с доской:
+   * - владелец
+   * - участники
+   * - авторы карточек
+   * - исполнители карточек
+   *
+   * Может быть undefined, если старый снапшот или старая версия API.
+   */
+  users?: UserView[];
 }
 
 export interface BoardColumn {

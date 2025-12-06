@@ -9,9 +9,12 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using Serilog;
 using StackExchange.Redis;
+using Tasker.Auth.Infrastructure;
 using Tasker.BoardRead.Api.Security;
 using Tasker.BoardRead.Application.Boards.Abstractions;
+using Tasker.BoardRead.Application.Users.Abstractions;
 using Tasker.BoardRead.Infrastructure.Boards;
+using Tasker.BoardRead.Infrastructure.Users;
 using Tasker.BoardWrite.Application.Abstractions.Security;
 using Tasker.BoardWrite.Infrastructure;
 using Tasker.BoardWrite.Infrastructure.Security;
@@ -96,6 +99,7 @@ builder.Services
 builder.Services.AddAuthorization();
 
 // ---------- MySQL: BoardWriteDbContext (fallback для read) ----------
+// TODO: Remove ts from here
 
 var conn = builder.Configuration.GetConnectionString("BoardWrite")
            ?? builder.Configuration["ConnectionStrings:BoardWrite"]
@@ -105,8 +109,22 @@ var serverVersion = new MySqlServerVersion(new Version(8, 0, 36));
 
 builder.Services.AddDbContext<BoardWriteDbContext>(opt =>
 {
-    // TODO: Use Repository instead of DbContext
     opt.UseMySql(conn, serverVersion,
+            mySql => mySql.MigrationsHistoryTable("__EFMigrationsHistory", schema: null))
+        .EnableDetailedErrors()
+        .EnableSensitiveDataLogging();
+});
+
+// ---------- MySQL: AuthDbContext (чтение пользователей для View) ----------
+// TODO: Remove ts from here
+
+var authConn = builder.Configuration.GetConnectionString("Auth")
+               ?? builder.Configuration["ConnectionStrings:Auth"]
+               ?? "Server=mysql;Port=3306;Database=tasker;User=tasker;Password=tasker;TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;";
+
+builder.Services.AddDbContext<AuthDbContext>(opt =>
+{
+    opt.UseMySql(authConn, serverVersion,
             mySql => mySql.MigrationsHistoryTable("__EFMigrationsHistory", schema: null))
         .EnableDetailedErrors()
         .EnableSensitiveDataLogging();
@@ -150,6 +168,7 @@ builder.Services.AddSingleton<IBoardSnapshotStore, CassandraBoardSnapshotStore>(
 builder.Services.AddScoped<IBoardAccessService, BoardAccessService>();
 builder.Services.AddScoped<IBoardDetailsReadService, BoardDetailsReadService>();
 builder.Services.AddScoped<IBoardListReadService, BoardListReadService>();
+builder.Services.AddScoped<IUserReadService, AuthUserReadService>();
 
 // CORS для фронта (как в BoardWrite)
 const string frontendCorsPolicy = "FrontendDev";

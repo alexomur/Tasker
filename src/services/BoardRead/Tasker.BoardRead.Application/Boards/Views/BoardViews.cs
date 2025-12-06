@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Tasker.BoardRead.Application.Users.Views;
 
 namespace Tasker.BoardRead.Application.Boards.Views;
 
@@ -32,7 +33,8 @@ public sealed record BoardDetailsView(
     IReadOnlyCollection<BoardColumnView> Columns,
     IReadOnlyCollection<BoardMemberView> Members,
     IReadOnlyCollection<BoardLabelView> Labels,
-    IReadOnlyCollection<BoardCardView> Cards);
+    IReadOnlyCollection<BoardCardView> Cards,
+    IReadOnlyCollection<UserView> Users);
 
 public sealed record BoardColumnView(
     Guid Id,

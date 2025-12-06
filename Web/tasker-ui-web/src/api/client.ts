@@ -1,7 +1,17 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5003";
 
+// Явная база для write-сервиса (BoardWrite)
+const API_WRITE_BASE_URL =
+  import.meta.env.VITE_BOARDWRITE_API_BASE_URL ?? API_BASE_URL;
+
+// Явная база для read-сервиса (BoardRead).
+// По умолчанию — http://localhost:5002, даже если VITE_API_BASE_URL указывает на 5003.
+const API_READ_BASE_URL =
+  import.meta.env.VITE_BOARDREAD_API_BASE_URL ?? "http://localhost:5002";
+
 async function request<TResponse>(
+  baseUrl: string,
   path: string,
   options: RequestInit = {}
 ): Promise<TResponse> {
@@ -17,7 +27,7 @@ async function request<TResponse>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${baseUrl}${path}`, {
     ...options,
     headers,
   });
@@ -57,32 +67,54 @@ async function request<TResponse>(
   return data;
 }
 
+// Клиент для write-сервиса (BoardWrite, 5003 по умолчанию)
 export const httpClient = {
   get<TResponse>(path: string, signal?: AbortSignal) {
-    return request<TResponse>(path, {
+    return request<TResponse>(API_WRITE_BASE_URL, path, {
       method: "GET",
       signal,
     });
   },
 
-  post<TBody, TResponse>(
-    path: string,
-    body: TBody,
-    signal?: AbortSignal
-  ) {
-    return request<TResponse>(path, {
+  post<TBody, TResponse>(path: string, body: TBody, signal?: AbortSignal) {
+    return request<TResponse>(API_WRITE_BASE_URL, path, {
       method: "POST",
       body: JSON.stringify(body),
       signal,
     });
   },
 
-  put<TBody, TResponse>(
-    path: string,
-    body: TBody,
-    signal?: AbortSignal
-  ) {
-    return request<TResponse>(path, {
+  put<TBody, TResponse>(path: string, body: TBody, signal?: AbortSignal) {
+    return request<TResponse>(API_WRITE_BASE_URL, path, {
+      method: "PUT",
+      body: JSON.stringify(body),
+      signal,
+    });
+  },
+};
+
+// Явный алиас — write-клиент
+export const httpWriteClient = httpClient;
+
+// Отдельный клиент для read-сервиса (BoardRead, 5002 по умолчанию)
+export const httpReadClient = {
+  get<TResponse>(path: string, signal?: AbortSignal) {
+    return request<TResponse>(API_READ_BASE_URL, path, {
+      method: "GET",
+      signal,
+    });
+  },
+
+  post<TBody, TResponse>(path: string, body: TBody, signal?: AbortSignal) {
+    return request<TResponse>(API_READ_BASE_URL, path, {
+      method: "POST",
+      body: JSON.stringify(body),
+      signal,
+    });
+  },
+
+  put<TBody, TResponse>(path: string, body: TBody, signal?: AbortSignal) {
+    return request<TResponse>(API_READ_BASE_URL, path, {
       method: "PUT",
       body: JSON.stringify(body),
       signal,

@@ -1,12 +1,12 @@
-import { httpClient } from "./client";
+import { httpReadClient, httpWriteClient } from "./client";
 import type { BoardDetails, BoardListItem } from "../types/board";
 
 export function getBoardDetails(boardId: string): Promise<BoardDetails> {
-  return httpClient.get<BoardDetails>(`/api/v1/boards/${boardId}`);
+  return httpReadClient.get<BoardDetails>(`/api/v1/boards/${boardId}`);
 }
 
 export function getMyBoards(): Promise<BoardListItem[]> {
-  return httpClient.get<BoardListItem[]>("/api/v1/boards?mine=true");
+  return httpReadClient.get<BoardListItem[]>("/api/v1/boards?mine=true");
 }
 
 export interface AddColumnPayload {
@@ -25,7 +25,7 @@ export function addColumn(
   boardId: string,
   payload: AddColumnPayload
 ): Promise<AddColumnResult> {
-  return httpClient.post<AddColumnPayload, AddColumnResult>(
+  return httpWriteClient.post<AddColumnPayload, AddColumnResult>(
     `/api/v1/boards/${boardId}/columns`,
     payload
   );
@@ -49,7 +49,7 @@ export function createCard(
   boardId: string,
   payload: CreateCardPayload
 ): Promise<CreateCardResult> {
-  return httpClient.post<CreateCardPayload, CreateCardResult>(
+  return httpWriteClient.post<CreateCardPayload, CreateCardResult>(
     `/api/v1/boards/${boardId}/cards`,
     payload
   );
@@ -69,7 +69,7 @@ export function updateCard(
   cardId: string,
   payload: UpdateCardPayload
 ): Promise<UpdateCardResult> {
-  return httpClient.put<UpdateCardPayload, UpdateCardResult>(
+  return httpWriteClient.put<UpdateCardPayload, UpdateCardResult>(
     `/api/v1/boards/${boardId}/cards/${cardId}`,
     payload
   );
@@ -93,7 +93,7 @@ export function setCardDueDate(
   cardId: string,
   payload: SetCardDueDatePayload
 ): Promise<SetCardDueDateResult> {
-  return httpClient.post<SetCardDueDatePayload, SetCardDueDateResult>(
+  return httpWriteClient.post<SetCardDueDatePayload, SetCardDueDateResult>(
     `/api/v1/boards/${boardId}/cards/${cardId}/due-date`,
     payload
   );
@@ -112,7 +112,7 @@ export function addBoardMember(
   boardId: string,
   payload: AddBoardMemberPayload
 ): Promise<void> {
-  return httpClient
+  return httpWriteClient
     .post<AddBoardMemberPayload, unknown>(
       `/api/v1/boards/${boardId}/members`,
       payload
@@ -135,7 +135,7 @@ export interface CreateBoardResult {
 export function createBoard(
   payload: CreateBoardPayload
 ): Promise<CreateBoardResult> {
-  return httpClient.post<CreateBoardPayload, CreateBoardResult>(
+  return httpWriteClient.post<CreateBoardPayload, CreateBoardResult>(
     "/api/v1/boards",
     payload
   );
@@ -161,7 +161,7 @@ export function createLabel(
   boardId: string,
   payload: CreateLabelPayload
 ): Promise<CreateLabelResult> {
-  return httpClient.post<CreateLabelPayload, CreateLabelResult>(
+  return httpWriteClient.post<CreateLabelPayload, CreateLabelResult>(
     `/api/v1/boards/${boardId}/labels`,
     payload
   );
@@ -186,7 +186,7 @@ export function moveCard(
   cardId: string,
   payload: MoveCardPayload
 ): Promise<MoveCardResult> {
-  return httpClient.post<MoveCardPayload, MoveCardResult>(
+  return httpWriteClient.post<MoveCardPayload, MoveCardResult>(
     `/api/v1/boards/${boardId}/cards/${cardId}/move`,
     payload
   );
@@ -217,7 +217,7 @@ export function assignMemberToCard(
   cardId: string,
   payload: CardAssigneePayload
 ): Promise<AssignMemberToCardResult> {
-  return httpClient.post<CardAssigneePayload, AssignMemberToCardResult>(
+  return httpWriteClient.post<CardAssigneePayload, AssignMemberToCardResult>(
     `/api/v1/boards/${boardId}/cards/${cardId}/assignees`,
     payload
   );
@@ -228,7 +228,7 @@ export function unassignMemberFromCard(
   cardId: string,
   payload: CardAssigneePayload
 ): Promise<UnassignMemberFromCardResult> {
-  return httpClient.post<CardAssigneePayload, UnassignMemberFromCardResult>(
+  return httpWriteClient.post<CardAssigneePayload, UnassignMemberFromCardResult>(
     `/api/v1/boards/${boardId}/cards/${cardId}/assignees/remove`,
     payload
   );

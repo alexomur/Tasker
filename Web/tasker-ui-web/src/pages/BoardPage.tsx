@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getBoardDetails,
@@ -12,7 +12,12 @@ import {
   assignMemberToCard,
   unassignMemberFromCard,
 } from "../api/boards";
-import type { BoardDetails, BoardCard, BoardColumn } from "../types/board";
+import type {
+  BoardDetails,
+  BoardCard,
+  BoardColumn,
+  UserView,
+} from "../types/board";
 import { useAuth } from "../auth/AuthContext";
 
 export default function BoardPage() {
@@ -40,6 +45,32 @@ export default function BoardPage() {
   const [newMemberRole, setNewMemberRole] = useState<number>(2); // Member
   const [isAddingMember, setIsAddingMember] =
     useState<boolean>(false);
+
+  // --- users: Map<userId, UserView> для быстрого доступа по id ---
+  const usersById = useMemo(() => {
+    const map = new Map<string, UserView>();
+    if (board?.users) {
+      for (const u of board.users) {
+        map.set(u.id, u);
+      }
+    }
+    return map;
+  }, [board]);
+
+  function formatUserShort(userId: string): string {
+    const user = usersById.get(userId);
+    if (!user) return userId;
+    return user.displayName || user.email || userId;
+  }
+
+  function formatUserFull(userId: string): string {
+    const user = usersById.get(userId);
+    if (!user) return userId;
+    if (user.displayName && user.displayName !== user.email) {
+      return `${user.displayName} (${user.email})`;
+    }
+    return user.displayName || user.email || userId;
+  }
 
   async function loadBoard() {
     if (!boardId) {
@@ -259,7 +290,7 @@ export default function BoardPage() {
     }
   }
 
-    async function handleAssignCardMember(card: BoardCard) {
+  async function handleAssignCardMember(card: BoardCard) {
     if (!board) {
       return;
     }
@@ -268,7 +299,10 @@ export default function BoardPage() {
     const membersHint =
       activeMembers.length > 0
         ? activeMembers
-            .map((m) => `${m.userId} (${formatRole(m.role)})`)
+            .map(
+              (m) =>
+                `${formatUserFull(m.userId)} [${formatRole(m.role)}]`
+            )
             .join("\n")
         : "на доске нет активных участников";
 
@@ -312,7 +346,9 @@ export default function BoardPage() {
       return;
     }
 
-    const assigneesHint = card.assigneeUserIds.join("\n");
+    const assigneesHint = card.assigneeUserIds
+      .map((id) => formatUserFull(id))
+      .join("\n");
 
     const input = window.prompt(
       `Укажите userId исполнителя, которого нужно снять.\nТекущие исполнители:\n${assigneesHint}`,
@@ -344,7 +380,7 @@ export default function BoardPage() {
     }
   }
 
-    async function handleMoveCard(
+  async function handleMoveCard(
     card: BoardCard,
     direction: "left" | "right"
   ) {
@@ -389,7 +425,7 @@ export default function BoardPage() {
     }
   }
 
-    async function handleChangeCardDueDate(card: BoardCard) {
+  async function handleChangeCardDueDate(card: BoardCard) {
     if (!board) {
       return;
     }
@@ -492,7 +528,6 @@ export default function BoardPage() {
       currentMember.role === 1 ||
       currentMember.role === 2);
 
-
   return (
     <div style={pageContainerStyle}>
       <div style={pageInnerStyle}>
@@ -511,7 +546,7 @@ export default function BoardPage() {
             )}
           </div>
           <div style={boardMetaStyle}>
-            <span>Owner: {board.ownerUserId}</span>
+            <span>Owner: {formatUserShort(board.ownerUserId)}</span>
             {currentMember && (
               <span>Моя роль: {formatRole(currentMember.role)}</span>
             )}
@@ -631,7 +666,9 @@ export default function BoardPage() {
             <ul style={membersListStyle}>
               {board.members.map((m) => (
                 <li key={m.id} style={memberItemStyle}>
-                  <span style={memberUserStyle}>{m.userId}</span>
+                  <span style={memberUserStyle}>
+                    {formatUserShort(m.userId)}
+                  </span>
                   <span style={memberRoleStyle}>
                     {formatRole(m.role)}
                     {!m.isActive ? " (неактивен)" : ""}
@@ -705,11 +742,10 @@ export default function BoardPage() {
                 canMoveLeft={index > 0}
                 canMoveRight={index < allColumns.length - 1}
                 canManageAssignees={canManageAssignees}
+                formatUserShort={formatUserShort}
               />
             ))}
-
         </main>
-
       </div>
     </div>
   );
@@ -728,9 +764,8 @@ interface ColumnViewProps {
   canMoveLeft: boolean;
   canMoveRight: boolean;
   canManageAssignees: boolean;
+  formatUserShort: (userId: string) => string;
 }
-
-
 
 function ColumnView({
   column,
@@ -745,6 +780,7 @@ function ColumnView({
   canMoveLeft,
   canMoveRight,
   canManageAssignees,
+  formatUserShort,
 }: ColumnViewProps) {
   return (
     <section style={columnStyle}>
@@ -826,11 +862,15 @@ function ColumnView({
                 </div>
               )}
               <div style={cardMetaStyle}>
-                <span>Автор: {card.createdByUserId}</span>
+                <span>
+                  Автор: {formatUserShort(card.createdByUserId)}
+                </span>
                 {card.assigneeUserIds.length > 0 && (
                   <span>
                     Исполнители:{" "}
-                    {card.assigneeUserIds.join(", ")}
+                    {card.assigneeUserIds
+                      .map((id) => formatUserShort(id))
+                      .join(", ")}
                   </span>
                 )}
                 {card.dueDate && (
@@ -861,6 +901,8 @@ function ColumnView({
     </section>
   );
 }
+
+// --- styles ниже без изменений ---
 
 const pageContainerStyle: React.CSSProperties = {
   minHeight: "100vh",

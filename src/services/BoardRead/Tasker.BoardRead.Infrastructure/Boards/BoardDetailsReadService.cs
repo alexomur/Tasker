@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Tasker.BoardRead.Application.Boards.Abstractions;
 using Tasker.BoardRead.Application.Boards.Views;
+using Tasker.BoardRead.Application.Users.Abstractions;
+using Tasker.BoardRead.Application.Users.Views;
 // TODO: Write a separate module for BoardAccessService
 using Tasker.BoardWrite.Infrastructure;
 using Tasker.BoardWrite.Application.Abstractions.Security;
@@ -18,11 +20,9 @@ using ReadBoardMemberRole = BoardMemberRole;
 public sealed class BoardDetailsReadService : IBoardDetailsReadService
 {
     private readonly IBoardSnapshotStore _snapshots;
-
-    // TODO: Use Repository instead of DbContext
     private readonly BoardWriteDbContext _dbContext;
-    
     private readonly IBoardAccessService _boardAccessService;
+    private readonly IUserReadService _userReadService;
     private readonly ILogger<BoardDetailsReadService> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -36,17 +36,17 @@ public sealed class BoardDetailsReadService : IBoardDetailsReadService
         IBoardSnapshotStore snapshots,
         BoardWriteDbContext dbContext,
         IBoardAccessService boardAccessService,
-        ILogger<BoardDetailsReadService> logger)
+        ILogger<BoardDetailsReadService> logger, IUserReadService userReadService)
     {
         _snapshots = snapshots;
         _dbContext = dbContext;
         _boardAccessService = boardAccessService;
         _logger = logger;
+        _userReadService = userReadService;
     }
 
     public async Task<BoardDetailsView?> GetBoardAsync(Guid boardId, CancellationToken cancellationToken = default)
     {
-        // TODO: 
         await _boardAccessService.EnsureCanReadBoardAsync(boardId, cancellationToken);
 
         // Пытаемся прочитать снапшот из Cassandra
@@ -68,7 +68,7 @@ public sealed class BoardDetailsReadService : IBoardDetailsReadService
 
         if (fromSnapshot is not null)
         {
-            return fromSnapshot;
+            return await EnrichWithUsersAsync(fromSnapshot, cancellationToken);
         }
 
         // Fallback: читаем из MySQL через BoardWriteDbContext
@@ -129,7 +129,7 @@ public sealed class BoardDetailsReadService : IBoardDetailsReadService
                 AssigneeUserIds: c.AssigneeUserIds.ToArray()))
             .ToList();
 
-        var view = new BoardDetailsView(
+        var baseView = new BoardDetailsView(
             Id: board.Id,
             Title: board.Title,
             Description: board.Description,
@@ -140,7 +140,10 @@ public sealed class BoardDetailsReadService : IBoardDetailsReadService
             Columns: columns,
             Members: members,
             Labels: labels,
-            Cards: cards);
+            Cards: cards,
+            Users: Array.Empty<UserView>());
+
+        var view = await EnrichWithUsersAsync(baseView, cancellationToken);
 
         // Пишем свежий снапшот в Cassandra
         try
@@ -155,5 +158,31 @@ public sealed class BoardDetailsReadService : IBoardDetailsReadService
         }
 
         return view;
+    }
+    
+    private async Task<BoardDetailsView> EnrichWithUsersAsync(
+        BoardDetailsView view,
+        CancellationToken cancellationToken)
+    {
+        var userIds = view.Members
+            .Select(m => m.UserId)
+            .Append(view.OwnerUserId)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToArray();
+
+        if (userIds.Length == 0)
+        {
+            return view with { Users = Array.Empty<UserView>() };
+        }
+
+        var users = await _userReadService.GetByIdsAsync(userIds, cancellationToken);
+
+        // Для стабильности можем отсортировать по имени
+        var orderedUsers = users
+            .OrderBy(u => u.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return view with { Users = orderedUsers };
     }
 }
