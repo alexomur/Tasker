@@ -3,6 +3,8 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Tasker.BoardRead.Application.Boards.Views;
+using Tasker.BoardRead.Application.Users.Abstractions;
+using Tasker.BoardRead.Application.Users.Views;
 using Tasker.BoardRead.Infrastructure.Boards;
 using Tasker.BoardWrite.Application.Abstractions.Security;
 using Tasker.BoardWrite.Domain.Boards;
@@ -56,13 +58,31 @@ public class BoardDetailsReadServiceTests
             => throw new NotImplementedException();
     }
 
+    private sealed class FakeUserReadService : IUserReadService
+    {
+        public Dictionary<Guid, UserView> UsersById { get; } = new();
+        public List<IReadOnlyCollection<Guid>> Calls { get; } = new();
+
+        public Task<IReadOnlyCollection<UserView>> GetByIdsAsync(
+            IReadOnlyCollection<Guid> ids,
+            CancellationToken cancellationToken = default)
+        {
+            Calls.Add(ids);
+            var result = ids
+                .Where(id => UsersById.ContainsKey(id))
+                .Select(id => UsersById[id])
+                .ToArray();
+            return Task.FromResult<IReadOnlyCollection<UserView>>(result);
+        }
+    }
+
     private sealed class NullLogger<T> : ILogger<T>
     {
         public static readonly NullLogger<T> Instance = new();
 
         private NullLogger() { }
 
-        public IDisposable BeginScope<TState>(TState state) => NullScope.Instance;
+        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
 
         public bool IsEnabled(LogLevel logLevel) => false;
 
@@ -73,7 +93,6 @@ public class BoardDetailsReadServiceTests
             Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
-            // no-op
         }
 
         private sealed class NullScope : IDisposable
@@ -94,11 +113,11 @@ public class BoardDetailsReadServiceTests
     [Fact]
     public async Task GetBoardAsync_WhenSnapshotExists_ShouldReturnSnapshotAndNotWriteNew()
     {
-        // Arrange
         var boardId = Guid.NewGuid();
 
         var snapshotStore = new FakeBoardSnapshotStore();
         var accessService = new FakeBoardAccessService();
+        var userReadService = new FakeUserReadService();
         var logger = NullLogger<BoardDetailsReadService>.Instance;
 
         var columns = new[]
@@ -106,11 +125,13 @@ public class BoardDetailsReadServiceTests
             new BoardColumnView(Guid.NewGuid(), "Todo", null, 0)
         };
 
+        var memberUserId = Guid.NewGuid();
+
         var members = new[]
         {
             new BoardMemberView(
                 Id: Guid.NewGuid(),
-                UserId: Guid.NewGuid(),
+                UserId: memberUserId,
                 Role: ReadBoardMemberRole.Owner,
                 IsActive: true,
                 JoinedAt: new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero),
@@ -130,7 +151,7 @@ public class BoardDetailsReadServiceTests
                 Title: "Card 1",
                 Description: "Desc",
                 Order: 1,
-                CreatedByUserId: members[0].UserId,
+                CreatedByUserId: memberUserId,
                 CreatedAt: new DateTimeOffset(2025, 1, 1, 12, 5, 0, TimeSpan.Zero),
                 UpdatedAt: new DateTimeOffset(2025, 1, 1, 12, 10, 0, TimeSpan.Zero),
                 DueDate: null,
@@ -141,17 +162,23 @@ public class BoardDetailsReadServiceTests
             Id: boardId,
             Title: "Board From Snapshot",
             Description: "Snapshot description",
-            OwnerUserId: members[0].UserId,
+            OwnerUserId: memberUserId,
             IsArchived: false,
             CreatedAt: new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero),
             UpdatedAt: new DateTimeOffset(2025, 1, 1, 13, 0, 0, TimeSpan.Zero),
             Columns: columns,
             Members: members,
             Labels: labels,
-            Cards: cards);
+            Cards: cards,
+            Users: Array.Empty<UserView>());
 
         var json = JsonSerializer.Serialize(snapshotView, JsonOptions);
         snapshotStore.Seed(boardId, json);
+
+        userReadService.UsersById[memberUserId] = new UserView(
+            Id: memberUserId,
+            DisplayName: "Owner",
+            Email: "owner@example.com");
 
         var dbOptions = new DbContextOptionsBuilder<BoardWriteDbContext>()
             .UseInMemoryDatabase("BoardDetails_SnapshotExists")
@@ -163,23 +190,28 @@ public class BoardDetailsReadServiceTests
             snapshotStore,
             dbContext,
             accessService,
-            logger);
+            logger,
+            userReadService);
 
-        // Act
         var result = await service.GetBoardAsync(boardId, CancellationToken.None);
 
-        // Assert
         result.Should().NotBeNull();
-        result.Should().BeEquivalentTo(snapshotView);
+        result!.Should().BeEquivalentTo(snapshotView, opt => opt.Excluding(v => v.Users));
 
         snapshotStore.Upserts.Should().BeEmpty();
         accessService.EnsureCanReadCalls.Should().ContainSingle(id => id == boardId);
+
+        userReadService.Calls.Should().ContainSingle();
+        var calledIds = userReadService.Calls.Single();
+        calledIds.Should().ContainSingle(id => id == memberUserId);
+
+        result.Users.Should().ContainSingle();
+        result.Users.Single().Id.Should().Be(memberUserId);
     }
 
     [Fact]
     public async Task GetBoardAsync_WhenSnapshotMissing_ShouldLoadFromDbAndCreateSnapshot()
     {
-        // Arrange
         var dbOptions = new DbContextOptionsBuilder<BoardWriteDbContext>()
             .UseInMemoryDatabase("BoardDetails_SnapshotMissing")
             .Options;
@@ -189,7 +221,6 @@ public class BoardDetailsReadServiceTests
         Guid assigneeId;
         DateTimeOffset now = new(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
-        // Сидируем доску в InMemory-DB
         using (var seedContext = new BoardWriteDbContext(dbOptions))
         {
             ownerId = Guid.NewGuid();
@@ -213,10 +244,8 @@ public class BoardDetailsReadServiceTests
 
             card.AssignUser(assigneeId, now.AddMinutes(10));
 
-            // Добавим assignee в участники доски
             board.AddMember(assigneeId, WriteBoardMemberRole.Member, now.AddMinutes(2));
 
-            // Добавим метку
             board.AddLabel("Bug", "#ff0000", "Bug label");
 
             seedContext.Boards.Add(board);
@@ -226,7 +255,17 @@ public class BoardDetailsReadServiceTests
 
         var snapshotStore = new FakeBoardSnapshotStore();
         var accessService = new FakeBoardAccessService();
+        var userReadService = new FakeUserReadService();
         var logger = NullLogger<BoardDetailsReadService>.Instance;
+
+        userReadService.UsersById[ownerId] = new UserView(
+            Id: ownerId,
+            DisplayName: "Owner",
+            Email: "owner@example.com");
+        userReadService.UsersById[assigneeId] = new UserView(
+            Id: assigneeId,
+            DisplayName: "Assignee",
+            Email: "assignee@example.com");
 
         using var dbContext = new BoardWriteDbContext(dbOptions);
 
@@ -234,12 +273,11 @@ public class BoardDetailsReadServiceTests
             snapshotStore,
             dbContext,
             accessService,
-            logger);
+            logger,
+            userReadService);
 
-        // Act
         var result = await service.GetBoardAsync(boardId, CancellationToken.None);
 
-        // Assert
         result.Should().NotBeNull();
         result!.Id.Should().Be(boardId);
         result.Title.Should().Be("My Board");
@@ -247,7 +285,7 @@ public class BoardDetailsReadServiceTests
         result.OwnerUserId.Should().Be(ownerId);
 
         result.Columns.Should().HaveCount(1);
-        result.Members.Should().HaveCount(2); // владелец + assignee
+        result.Members.Should().HaveCount(2);
         result.Labels.Should().HaveCount(1);
         result.Cards.Should().HaveCount(1);
 
@@ -255,17 +293,22 @@ public class BoardDetailsReadServiceTests
         cardView.Title.Should().Be("First card");
         cardView.AssigneeUserIds.Should().ContainSingle(id => id == assigneeId);
 
-        // Снапшот должен быть записан
         snapshotStore.Upserts.Should().ContainSingle(u => u.BoardId == boardId);
         var upsert = snapshotStore.Upserts.Single();
 
         upsert.TtlSeconds.Should().Be(24 * 60 * 60);
         upsert.Payload.Should().NotBeNullOrWhiteSpace();
 
-        // Должен был вызваться EnsureCanReadBoardAsync
         accessService.EnsureCanReadCalls.Should().ContainSingle(id => id == boardId);
 
-        // И TryGetAsync тоже
         snapshotStore.TryGetCalls.Should().ContainSingle(id => id == boardId);
+
+        userReadService.Calls.Should().ContainSingle();
+        var userIds = userReadService.Calls.Single().ToHashSet();
+        userIds.Should().BeEquivalentTo(new[] { ownerId, assigneeId });
+
+        result.Users.Select(u => u.Id).ToHashSet()
+            .Should()
+            .BeEquivalentTo(new[] { ownerId, assigneeId });
     }
 }

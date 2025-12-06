@@ -1,7 +1,9 @@
 ﻿using FluentAssertions;
 using Tasker.BoardWrite.Application.Abstractions.Persistence;
 using Tasker.BoardWrite.Application.Abstractions.ReadModel;
+using Tasker.BoardWrite.Application.Abstractions.Services;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
+using Tasker.BoardWrite.Application.Boards.Templates;
 using Tasker.BoardWrite.Domain.Boards;
 using Tasker.Shared.Kernel.Abstractions;
 
@@ -58,7 +60,6 @@ public class CreateBoardHandlerTests
 
         public Task<Board?> GetByIdAsTrackingAsync(Guid id, CancellationToken ct = default)
         {
-            // Для целей теста трекинг нам не важен — возвращаем то же самое, что и GetByIdAsync
             var board = _boards.SingleOrDefault(b => b.Id == id);
             return Task.FromResult(board);
         }
@@ -72,7 +73,6 @@ public class CreateBoardHandlerTests
         public Task AddEntityAsync<TEntity>(TEntity entity, CancellationToken ct = default)
             where TEntity : Entity
         {
-            // В этих тестах мы не используем AddEntityAsync, но сделаем простую поддержку досок
             if (entity is Board board)
             {
                 _boards.Add(board);
@@ -91,26 +91,45 @@ public class CreateBoardHandlerTests
         }
     }
 
+    private sealed class FakeBoardTemplateService : IBoardTemplateService
+    {
+        public List<(Board Board, string? TemplateCode, Guid OwnerUserId, DateTimeOffset Now)> ApplyCalls { get; } = new();
+
+        public void ApplyTemplate(Board board, string? templateCode, Guid ownerUserId, DateTimeOffset now)
+        {
+            ApplyCalls.Add((board, templateCode, ownerUserId, now));
+        }
+
+        public IReadOnlyCollection<BoardTemplateInfo> GetTemplates()
+        {
+            return Array.Empty<BoardTemplateInfo>();
+        }
+    }
+
     [Fact]
     public async Task Handle_ShouldCreateBoardAndCallDependencies()
     {
-        // Arrange
         var repo = new FakeBoardRepository();
         var uow = new FakeUnitOfWork();
         var currentUserId = Guid.NewGuid();
         var currentUser = new FakeCurrentUser(isAuthenticated: true, userId: currentUserId);
         var readModelWriter = new FakeBoardReadModelWriter();
+        var templateService = new FakeBoardTemplateService();
 
-        var handler = new CreateBoardHandler(repo, uow, currentUser, readModelWriter);
+        var handler = new CreateBoardHandler(
+            repo,
+            uow,
+            currentUser,
+            readModelWriter,
+            templateService);
 
         var cmd = new CreateBoardCommand(
             Title: "  My Board  ",
-            Description: "  Description  ");
+            Description: "  Description  ",
+            TemplateCode: null);
 
-        // Act
         var result = await handler.Handle(cmd, CancellationToken.None);
 
-        // Assert
         result.BoardId.Should().NotBe(Guid.Empty);
 
         repo.Boards.Should().HaveCount(1);
@@ -129,27 +148,36 @@ public class CreateBoardHandlerTests
 
         uow.SaveChangesCallCount.Should().Be(1);
         readModelWriter.RefreshedBoardIds.Should().ContainSingle(id => id == board.Id);
+
+        templateService.ApplyCalls.Should().ContainSingle(c => c.Board.Id == board.Id);
+        var applyCall = templateService.ApplyCalls.Single();
+        applyCall.TemplateCode.Should().BeNull();
+        applyCall.OwnerUserId.Should().Be(currentUserId);
     }
 
     [Fact]
     public async Task Handle_WhenUserNotAuthenticated_ShouldThrowAndNotTouchDependencies()
     {
-        // Arrange
         var repo = new FakeBoardRepository();
         var uow = new FakeUnitOfWork();
         var currentUser = new FakeCurrentUser(isAuthenticated: false, userId: null);
         var readModelWriter = new FakeBoardReadModelWriter();
+        var templateService = new FakeBoardTemplateService();
 
-        var handler = new CreateBoardHandler(repo, uow, currentUser, readModelWriter);
+        var handler = new CreateBoardHandler(
+            repo,
+            uow,
+            currentUser,
+            readModelWriter,
+            templateService);
 
         var cmd = new CreateBoardCommand(
             Title: "Board",
-            Description: null);
+            Description: null,
+            TemplateCode: null);
 
-        // Act
         Func<Task> act = () => handler.Handle(cmd, CancellationToken.None);
 
-        // Assert
         await act.Should()
             .ThrowAsync<InvalidOperationException>()
             .WithMessage("Текущий пользователь не определён.");
@@ -157,5 +185,6 @@ public class CreateBoardHandlerTests
         repo.Boards.Should().BeEmpty();
         uow.SaveChangesCallCount.Should().Be(0);
         readModelWriter.RefreshedBoardIds.Should().BeEmpty();
+        templateService.ApplyCalls.Should().BeEmpty();
     }
 }
