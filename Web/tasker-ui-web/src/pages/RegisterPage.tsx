@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import type { FormEvent } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { login as loginRequest } from "../api/auth";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  register as registerRequest,
+  login as loginRequest,
+} from "../api/auth";
 import { useAuth } from "../auth/AuthContext";
 
 type LocationState = {
@@ -10,9 +13,11 @@ type LocationState = {
   };
 };
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,28 +33,51 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
 
-    if (!email.trim() || !password.trim()) {
-      setError("Введите email и пароль.");
+    const trimmedEmail = email.trim();
+    const trimmedDisplayName = displayName.trim();
+
+    if (!trimmedEmail || !trimmedDisplayName || !password || !passwordConfirm) {
+      setError("Заполните email, отображаемое имя и пароль.");
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      setError("Пароли не совпадают.");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const result = await loginRequest({
-        email: email.trim(),
+      // 1. Регистрация
+      await registerRequest({
+        email: trimmedEmail,
+        displayName: trimmedDisplayName,
         password,
       });
 
-      login(result.userId, result.accessToken);
+      // 2. Авто-логин
+      try {
+        const loginResult = await loginRequest({
+          email: trimmedEmail,
+          password,
+        });
 
-      navigate(from, { replace: true });
+        login(loginResult.userId, loginResult.accessToken);
+        navigate(from, { replace: true });
+      } catch (loginErr) {
+        console.error("Регистрация успешна, но авто-вход не удался", loginErr);
+        setError(
+          "Аккаунт создан, но не удалось автоматически войти. Попробуйте войти вручную."
+        );
+        navigate("/login", { replace: true });
+      }
     } catch (err) {
-      console.error("Не удалось выполнить вход", err);
+      console.error("Не удалось выполнить регистрацию", err);
       const message =
         err instanceof Error
           ? err.message
-          : "Не удалось выполнить вход. Попробуйте позже.";
+          : "Не удалось выполнить регистрацию. Попробуйте позже.";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -68,7 +96,7 @@ export default function LoginPage() {
 
   const formContainerStyle: React.CSSProperties = {
     width: "100%",
-    maxWidth: "360px",
+    maxWidth: "400px",
     backgroundColor: "#ffffff",
     borderRadius: "8px",
     padding: "24px",
@@ -135,7 +163,7 @@ export default function LoginPage() {
   return (
     <div style={pageContainerStyle}>
       <div style={formContainerStyle}>
-        <h1 style={titleStyle}>Вход в Tasker</h1>
+        <h1 style={titleStyle}>Регистрация в Tasker</h1>
         <form onSubmit={handleSubmit}>
           <label style={fieldStyle}>
             <span>Email</span>
@@ -149,30 +177,52 @@ export default function LoginPage() {
           </label>
 
           <label style={fieldStyle}>
+            <span>Отображаемое имя</span>
+            <input
+              type="text"
+              autoComplete="name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              style={inputStyle}
+            />
+          </label>
+
+          <label style={fieldStyle}>
             <span>Пароль</span>
             <input
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={inputStyle}
             />
           </label>
 
+          <label style={fieldStyle}>
+            <span>Подтвердите пароль</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={passwordConfirm}
+              onChange={(e) => setPasswordConfirm(e.target.value)}
+              style={inputStyle}
+            />
+          </label>
+
           <button type="submit" disabled={isSubmitting} style={buttonStyle}>
-            {isSubmitting ? "Входим..." : "Войти"}
+            {isSubmitting ? "Регистрируем..." : "Зарегистрироваться"}
           </button>
 
           {error && <div style={errorStyle}>{error}</div>}
 
           <div style={footerStyle}>
-            Нет аккаунта?{" "}
+            Уже есть аккаунт?{" "}
             <button
               type="button"
-              onClick={() => navigate("/register")}
+              onClick={() => navigate("/login")}
               style={linkButtonStyle}
             >
-              Зарегистрируйтесь
+              Войти
             </button>
           </div>
         </form>

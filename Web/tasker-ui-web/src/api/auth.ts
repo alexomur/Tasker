@@ -40,3 +40,44 @@ export async function login(payload: LoginRequest): Promise<LoginResponse> {
   const data = (await response.json()) as LoginResponse;
   return data;
 }
+
+export interface RegisterRequest {
+  email: string;
+  displayName: string;
+  password: string;
+}
+
+export interface RegisterResponse {
+  userId: string;
+}
+
+export async function register(
+  payload: RegisterRequest
+): Promise<RegisterResponse> {
+  const response = await fetch(`${AUTH_API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let details = "";
+
+    try {
+      details = await response.text();
+    } catch {
+      details = "";
+    }
+
+    throw new Error(
+      `HTTP ${response.status} ${response.statusText}${
+        details ? `: ${details}` : ""
+      }`
+    );
+  }
+
+  const data = (await response.json()) as RegisterResponse;
+  return data;
+}
