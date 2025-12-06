@@ -83,8 +83,6 @@ services:
       - Auth__SessionTtlMinutes=10080
       - KAFKA__BROKERS=redpanda:9092
       - ConnectionStrings__Auth=Server=mysql;Port=3306;Database=${MYSQL_DB};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;
-    ports:
-      - "5001:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -100,8 +98,6 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - Redis__Connection=redis:6379
       - ConnectionStrings__BoardWrite=Server=mysql;Port=3306;Database=${MYSQL_DB};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;
-    ports:
-      - "5002:8080"
     depends_on:
       cassandra:
         condition: service_healthy
@@ -120,8 +116,6 @@ services:
       - Redis__Connection=redis:6379
       - KAFKA__BROKERS=redpanda:9092
       - ConnectionStrings__BoardWrite=Server=mysql;Port=3306;Database=${MYSQL_DB};User=${MYSQL_USER};Password=${MYSQL_PASSWORD};TreatTinyAsBoolean=true;AllowUserVariables=true;DefaultCommandTimeout=30;
-    ports:
-      - "5003:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -153,8 +147,10 @@ services:
       context: ../../Web/tasker-ui-web
       dockerfile: Dockerfile
     environment:
-      - VITE_API_BASE_URL=http://localhost:5003
-      - VITE_AUTH_API_BASE_URL=http://localhost:5001/api/v1
+      - VITE_API_BASE_URL=http://localhost:8080/api/boardwrite
+      - VITE_BOARDREAD_API_BASE_URL=http://localhost:8080/api/boardread
+      - VITE_BOARDWRITE_API_BASE_URL=http://localhost:8080/api/boardwrite
+      - VITE_AUTH_API_BASE_URL=http://localhost:8080/api
     ports:
       - "5173:5173"
     depends_on:
@@ -164,6 +160,22 @@ services:
         condition: service_started
       boardwrite-api:
         condition: service_started
+  
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      frontend:
+        condition: service_started
+      auth-api:
+        condition: service_started
+      boardread-api:
+        condition: service_started
+      boardwrite-api:
+        condition: service_started
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
 
 networks:
   default:

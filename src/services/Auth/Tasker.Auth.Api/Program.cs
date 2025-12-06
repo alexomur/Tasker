@@ -75,12 +75,11 @@ builder.Services.AddControllers(options =>
     options.Filters.Add<AppExceptionFilter>();
 });
 
-// CORS только для разработки: фронт с Vite на http://localhost:5173
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DevCors", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173", "http://localhost:8080")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
