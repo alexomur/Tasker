@@ -125,27 +125,6 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-
-  
-  projector-api:
-    build:
-      context: ../../
-      dockerfile: src/services/Projector/Tasker.Projector.Api/Dockerfile
-    environment:
-      - ASPNETCORE_URLS=http://+:8080
-      - ASPNETCORE_ENVIRONMENT=Development
-    ports:
-      - "5004:8080"
-  
-  outbox-api:
-    build:
-      context: ../../
-      dockerfile: src/services/Outbox/Tasker.Outbox.Api/Dockerfile
-    environment:
-      - ASPNETCORE_URLS=http://+:8080
-      - ASPNETCORE_ENVIRONMENT=Development
-    ports:
-      - "5005:8080"
   
   prometheus:
     image: prom/prometheus:latest
