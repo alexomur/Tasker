@@ -68,4 +68,5 @@ public sealed record BoardCardDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? DueDate,
-    IReadOnlyCollection<Guid> AssigneeUserIds);
+    IReadOnlyCollection<Guid> AssigneeUserIds,
+    IReadOnlyCollection<Guid> LabelIds);

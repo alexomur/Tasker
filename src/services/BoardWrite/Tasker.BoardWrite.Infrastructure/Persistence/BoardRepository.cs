@@ -25,10 +25,12 @@ public sealed class BoardRepository : IBoardRepository
     {
         return _db.Boards
             .AsTracking()
+            .AsSplitQuery()
             .Include(b => b.Columns)
             .Include(b => b.Members)
             .Include(b => b.Labels)
             .Include(b => b.Cards)
+            .ThenInclude(c => c.Labels)
             .FirstOrDefaultAsync(b => b.Id == id, ct);
     }
 
@@ -39,10 +41,12 @@ public sealed class BoardRepository : IBoardRepository
     public Task<Board?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return _db.Boards
+            .AsSplitQuery()
             .Include(b => b.Columns)
             .Include(b => b.Members)
             .Include(b => b.Labels)
             .Include(b => b.Cards)
+            .ThenInclude(c => c.Labels)
             .FirstOrDefaultAsync(b => b.Id == id, ct);
     }
 

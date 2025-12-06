@@ -68,7 +68,8 @@ public sealed class GetBoardDetailsHandler
                 CreatedAt: c.CreatedAt,
                 UpdatedAt: c.UpdatedAt,
                 DueDate: c.DueDate,
-                AssigneeUserIds: c.AssigneeUserIds.ToArray()))
+                AssigneeUserIds: c.AssigneeUserIds.ToArray(),
+                LabelIds: c.Labels.Select(l => l.Id).ToArray()))
             .ToList();
 
         return new BoardDetailsResult(

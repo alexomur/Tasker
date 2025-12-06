@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tasker.BoardWrite.Infrastructure;
 
@@ -11,9 +12,11 @@ using Tasker.BoardWrite.Infrastructure;
 namespace Tasker.BoardWrite.Infrastructure.Migrations
 {
     [DbContext(typeof(BoardWriteDbContext))]
-    partial class BoardWriteDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251206155927_AddCardLabels")]
+    partial class AddCardLabels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

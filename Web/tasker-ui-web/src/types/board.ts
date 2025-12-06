@@ -64,6 +64,7 @@ export interface BoardCard {
   updatedAt: string;
   dueDate: string | null;
   assigneeUserIds: string[];
+  labelIds?: string[];
 }
 
 export interface BoardListItem {

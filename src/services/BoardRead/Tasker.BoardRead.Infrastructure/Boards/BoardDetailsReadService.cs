@@ -73,13 +73,14 @@ public sealed class BoardDetailsReadService : IBoardDetailsReadService
 
         // Fallback: читаем из MySQL через BoardWriteDbContext
         _logger.LogInformation("Board snapshot for {BoardId} not found, loading from MySQL", boardId);
-
+        
         var board = await _dbContext.Boards
             .AsNoTracking()
             .Include(b => b.Columns)
             .Include(b => b.Members)
             .Include(b => b.Labels)
             .Include(b => b.Cards)
+            .ThenInclude(c => c.Labels)
             .FirstOrDefaultAsync(b => b.Id == boardId, cancellationToken);
 
         if (board is null)
@@ -126,7 +127,8 @@ public sealed class BoardDetailsReadService : IBoardDetailsReadService
                 CreatedAt: c.CreatedAt,
                 UpdatedAt: c.UpdatedAt,
                 DueDate: c.DueDate,
-                AssigneeUserIds: c.AssigneeUserIds.ToArray()))
+                AssigneeUserIds: c.AssigneeUserIds.ToArray(),
+                LabelIds: c.Labels.Select(l => l.Id).ToArray()))
             .ToList();
 
         var baseView = new BoardDetailsView(

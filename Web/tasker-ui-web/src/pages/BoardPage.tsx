@@ -11,12 +11,15 @@ import {
   setCardDueDate,
   assignMemberToCard,
   unassignMemberFromCard,
+  assignLabelToCard,
+  unassignLabelFromCard,
 } from "../api/boards";
 import type {
   BoardDetails,
   BoardCard,
   BoardColumn,
   UserView,
+  BoardLabel,
 } from "../types/board";
 import { useAuth } from "../auth/AuthContext";
 
@@ -45,6 +48,8 @@ export default function BoardPage() {
   const [newMemberRole, setNewMemberRole] = useState<number>(2); // Member
   const [isAddingMember, setIsAddingMember] =
     useState<boolean>(false);
+const [labelsEditorCardId, setLabelsEditorCardId] =
+    useState<string | null>(null);
 
   // --- users: Map<userId, UserView> для быстрого доступа по id ---
   const usersById = useMemo(() => {
@@ -56,6 +61,24 @@ export default function BoardPage() {
     }
     return map;
   }, [board]);
+
+  const labelsById = useMemo(() => {
+    const map = new Map<string, BoardLabel>();
+    if (board?.labels) {
+      for (const label of board.labels) {
+        map.set(label.id, label);
+      }
+    }
+    return map;
+  }, [board]);
+
+  const labelsEditorCard = useMemo(
+    () =>
+      board && labelsEditorCardId
+        ? board.cards.find((c) => c.id === labelsEditorCardId) ?? null
+        : null,
+    [board, labelsEditorCardId]
+  );
 
   function formatUserShort(userId: string): string {
     const user = usersById.get(userId);
@@ -70,6 +93,21 @@ export default function BoardPage() {
       return `${user.displayName} (${user.email})`;
     }
     return user.displayName || user.email || userId;
+  }
+
+  function getCardLabels(card: BoardCard): BoardLabel[] {
+  if (!board || !card.labelIds || card.labelIds.length === 0) {
+    return [];
+  }
+
+  const result: BoardLabel[] = [];
+  for (const id of card.labelIds) {
+      const label = labelsById.get(id);
+      if (label) {
+        result.push(label);
+      }
+    }
+    return result;
   }
 
   async function loadBoard() {
@@ -472,6 +510,33 @@ export default function BoardPage() {
     }
   }
 
+  async function handleToggleCardLabel(
+  card: BoardCard,
+  labelId: string,
+  isChecked: boolean
+) {
+  if (!board) {
+    return;
+  }
+
+  try {
+    if (isChecked) {
+      await assignLabelToCard(board.id, card.id, { labelId });
+    } else {
+      await unassignLabelFromCard(board.id, card.id, { labelId });
+    }
+
+    await loadBoard();
+  } catch (err) {
+    console.error("Не удалось обновить метки карточки", err);
+    const message =
+      err instanceof Error
+        ? err.message
+        : "Не удалось обновить метки карточки.";
+    alert(message);
+  }
+}
+
   function formatRole(role: number): string {
     switch (role) {
       case 0:
@@ -718,23 +783,23 @@ export default function BoardPage() {
         </section>
 
         <main style={columnsWrapperStyle}>
-          {board.columns
+        {board.columns
             .slice()
             .sort((a, b) => a.order - b.order)
             .map((column, index, allColumns) => (
-              <ColumnView
+            <ColumnView
                 key={column.id}
                 column={column}
                 cards={board.cards.filter(
-                  (c) => c.columnId === column.id
+                (c) => c.columnId === column.id
                 )}
                 onAddCard={handleAddCard}
                 onEditCard={handleEditCard}
                 onMoveCardLeft={(card) =>
-                  handleMoveCard(card, "left")
+                handleMoveCard(card, "left")
                 }
                 onMoveCardRight={(card) =>
-                  handleMoveCard(card, "right")
+                handleMoveCard(card, "right")
                 }
                 onChangeCardDueDate={handleChangeCardDueDate}
                 onAssignCardMember={handleAssignCardMember}
@@ -743,9 +808,19 @@ export default function BoardPage() {
                 canMoveRight={index < allColumns.length - 1}
                 canManageAssignees={canManageAssignees}
                 formatUserShort={formatUserShort}
-              />
+                getCardLabels={getCardLabels}
+                onEditCardLabels={(card) => setLabelsEditorCardId(card.id)}
+            />
             ))}
         </main>
+        {board && labelsEditorCard && (
+        <CardLabelsDialog
+            card={labelsEditorCard}
+            boardLabels={board.labels}
+            onClose={() => setLabelsEditorCardId(null)}
+            onToggleLabel={handleToggleCardLabel}
+        />
+        )}
       </div>
     </div>
   );
@@ -765,6 +840,9 @@ interface ColumnViewProps {
   canMoveRight: boolean;
   canManageAssignees: boolean;
   formatUserShort: (userId: string) => string;
+
+  getCardLabels: (card: BoardCard) => BoardLabel[];
+  onEditCardLabels: (card: BoardCard) => void;
 }
 
 function ColumnView({
@@ -781,6 +859,8 @@ function ColumnView({
   canMoveRight,
   canManageAssignees,
   formatUserShort,
+  getCardLabels,
+  onEditCardLabels,
 }: ColumnViewProps) {
   return (
     <section style={columnStyle}>
@@ -791,104 +871,132 @@ function ColumnView({
 
       <div style={cardsListStyle}>
         {cards
-          .slice()
-          .sort((a, b) => a.order - b.order)
-          .map((card) => (
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .map((card) => {
+            const cardLabels = getCardLabels(card);
+
+            return (
             <article key={card.id} style={cardStyle}>
-              <div style={cardTitleRowStyle}>
+                <div style={cardTitleRowStyle}>
                 <div style={cardTitleStyle}>{card.title}</div>
                 <div style={cardActionsStyle}>
-                  {canMoveLeft && (
+                    {canMoveLeft && (
                     <button
-                      type="button"
-                      style={cardMoveButtonStyle}
-                      onClick={() => onMoveCardLeft(card)}
-                      title="Переместить в колонку левее"
+                        type="button"
+                        style={cardMoveButtonStyle}
+                        onClick={() => onMoveCardLeft(card)}
+                        title="Переместить в колонку левее"
                     >
-                      ←
+                        ←
                     </button>
-                  )}
-                  {canMoveRight && (
+                    )}
+                    {canMoveRight && (
                     <button
-                      type="button"
-                      style={cardMoveButtonStyle}
-                      onClick={() => onMoveCardRight(card)}
-                      title="Перевести карточку дальше по пайплайну"
+                        type="button"
+                        style={cardMoveButtonStyle}
+                        onClick={() => onMoveCardRight(card)}
+                        title="Перевести карточку дальше по пайплайну"
                     >
-                      →
+                        → 
                     </button>
-                  )}
-                  <button
+                    )}
+                    <button
                     type="button"
                     style={cardMoveButtonStyle}
                     onClick={() => onChangeCardDueDate(card)}
                     title="Изменить дедлайн карточки"
-                  >
+                    >
                     ⏰
-                  </button>
-                  {canManageAssignees && (
+                    </button>
+                    {canManageAssignees && (
                     <>
-                      <button
+                        <button
                         type="button"
                         style={cardMoveButtonStyle}
                         onClick={() => onAssignCardMember(card)}
                         title="Назначить исполнителя"
-                      >
+                        >
                         👤+
-                      </button>
-                      <button
+                        </button>
+                        <button
                         type="button"
                         style={cardMoveButtonStyle}
                         onClick={() => onUnassignCardMember(card)}
                         title="Снять исполнителя"
-                      >
+                        >
                         👤-
-                      </button>
+                        </button>
                     </>
-                  )}
-                  <button
+                    )}
+                    <button
+                    type="button"
+                    style={cardMoveButtonStyle}
+                    onClick={() => onEditCardLabels(card)}
+                    title="Редактировать метки карточки"
+                    >
+                    🏷
+                    </button>
+                    <button
                     type="button"
                     style={cardEditButtonStyle}
                     onClick={() => onEditCard(card)}
                     title="Редактировать карточку"
-                  >
+                    >
                     ✏️
-                  </button>
+                    </button>
                 </div>
-              </div>
-              {card.description && (
+                </div>
+
+                {card.description && (
                 <div style={cardDescriptionStyle}>
-                  {card.description}
+                    {card.description}
                 </div>
-              )}
-              <div style={cardMetaStyle}>
+                )}
+
+                {cardLabels.length > 0 && (
+                <div style={cardLabelsRowStyle}>
+                    {cardLabels.map((label) => (
+                    <span
+                        key={label.id}
+                        style={{
+                        ...cardLabelPillStyle,
+                        backgroundColor: label.color,
+                        }}
+                        title={label.description ?? ""}
+                    >
+                        {label.title}
+                    </span>
+                    ))}
+                </div>
+                )}
+
+                <div style={cardMetaStyle}>
                 <span>
-                  Автор: {formatUserShort(card.createdByUserId)}
+                    Автор: {formatUserShort(card.createdByUserId)}
                 </span>
                 {card.assigneeUserIds.length > 0 && (
-                  <span>
+                    <span>
                     Исполнители:{" "}
                     {card.assigneeUserIds
-                      .map((id) => formatUserShort(id))
-                      .join(", ")}
-                  </span>
+                        .map((id) => formatUserShort(id))
+                        .join(", ")}
+                    </span>
                 )}
                 {card.dueDate && (
-                  <span>
+                    <span>
                     Дедлайн:{" "}
-                    {new Date(card.dueDate).toLocaleDateString(
-                      undefined,
-                      {
+                    {new Date(card.dueDate).toLocaleDateString(undefined, {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
-                      }
-                    )}
-                  </span>
+                    })}
+                    </span>
                 )}
-              </div>
+                </div>
             </article>
-          ))}
+            );
+        })}
 
         <button
           type="button"
@@ -902,7 +1010,127 @@ function ColumnView({
   );
 }
 
-// --- styles ниже без изменений ---
+interface CardLabelsDialogProps {
+  card: BoardCard;
+  boardLabels: BoardLabel[];
+  onClose: () => void;
+  onToggleLabel: (card: BoardCard, labelId: string, isChecked: boolean) => void;
+}
+
+function CardLabelsDialog({
+  card,
+  boardLabels,
+  onClose,
+  onToggleLabel,
+}: CardLabelsDialogProps) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(0,0,0,0.35)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          borderRadius: 8,
+          padding: 16,
+          minWidth: 320,
+          maxWidth: 480,
+          maxHeight: "80vh",
+          boxSizing: "border-box",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <h3 style={{ margin: 0, marginBottom: 8 }}>
+          Метки для «{card.title}»
+        </h3>
+
+        <div
+          style={{
+            fontSize: 13,
+            opacity: 0.8,
+            marginBottom: 8,
+          }}
+        >
+          Поставьте галочки для меток, которые должны быть на карточке.
+        </div>
+
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            paddingRight: 4,
+            marginBottom: 12,
+          }}
+        >
+          {boardLabels.length === 0 && (
+            <div style={{ fontSize: 12, opacity: 0.7 }}>
+              На доске ещё нет меток — создайте их в блоке «Метки» наверху.
+            </div>
+          )}
+
+          {boardLabels.map((label) => {
+            const checked = card.labelIds?.includes(label.id) ?? false;
+
+            return (
+              <label
+                key={label.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 6,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) =>
+                    onToggleLabel(card, label.id, e.target.checked)
+                  }
+                />
+                <span
+                  style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: "50%",
+                    border: "1px solid rgba(0,0,0,0.2)",
+                    backgroundColor: label.color,
+                    flexShrink: 0,
+                  }}
+                />
+                <span>{label.title}</span>
+                {label.description && (
+                  <span style={{ fontSize: 11, opacity: 0.7 }}>
+                    — {label.description}
+                  </span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+
+        <div style={{ textAlign: "right" }}>
+          <button type="button" style={buttonStyle} onClick={onClose}>
+            Закрыть
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- styles ---
 
 const pageContainerStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -1214,4 +1442,20 @@ const addCardButtonStyle: React.CSSProperties = {
   fontSize: "13px",
   cursor: "pointer",
   textAlign: "left",
+};
+
+const cardLabelsRowStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "4px",
+  marginTop: "4px",
+};
+
+const cardLabelPillStyle: React.CSSProperties = {
+  padding: "2px 6px",
+  borderRadius: "999px",
+  fontSize: "11px",
+  fontWeight: 500,
+  color: "#172b4d",
+  backgroundColor: "#e0e0e0",
 };

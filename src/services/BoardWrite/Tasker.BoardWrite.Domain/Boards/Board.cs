@@ -347,6 +347,30 @@ public sealed class Board : Entity
         Touch(now);
     }
 
+    public void AttachLabelToCard(Guid cardId, Guid labelId, DateTimeOffset now)
+    {
+        var card = _cards.FirstOrDefault(c => c.Id == cardId);
+        if (card is null)
+            throw new InvalidOperationException("Карточка не найдена на доске.");
+
+        var label = _labels.FirstOrDefault(l => l.Id == labelId);
+        if (label is null)
+            throw new InvalidOperationException("Метка не найдена на доске.");
+
+        card.AddLabel(label, now);
+        Touch(now);
+    }
+
+    public void DetachLabelFromCard(Guid cardId, Guid labelId, DateTimeOffset now)
+    {
+        var card = _cards.FirstOrDefault(c => c.Id == cardId);
+        if (card is null)
+            throw new InvalidOperationException("Карточка не найдена на доске.");
+
+        card.RemoveLabel(labelId, now);
+        Touch(now);
+    }
+
     private void SetTitle(string title)
     {
         if (string.IsNullOrWhiteSpace(title))

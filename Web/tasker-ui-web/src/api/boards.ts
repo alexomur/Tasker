@@ -246,3 +246,47 @@ export function unassignMemberFromCard(
     payload
   );
 }
+
+export interface CardLabelPayload {
+  labelId: string;
+}
+
+export interface AssignLabelToCardResult {
+  cardId: string;
+  labelId: string;
+}
+
+export interface UnassignLabelFromCardResult {
+  cardId: string;
+  labelId: string;
+}
+
+/**
+ * Назначает метку карточке.
+ * POST /api/v1/boards/{boardId}/cards/{cardId}/labels
+ */
+export function assignLabelToCard(
+  boardId: string,
+  cardId: string,
+  payload: CardLabelPayload
+): Promise<AssignLabelToCardResult> {
+  return httpWriteClient.post<CardLabelPayload, AssignLabelToCardResult>(
+    `/api/v1/boards/${boardId}/cards/${cardId}/labels`,
+    payload
+  );
+}
+
+/**
+ * Снимает метку с карточки.
+ * POST /api/v1/boards/{boardId}/cards/{cardId}/labels/remove
+ */
+export function unassignLabelFromCard(
+  boardId: string,
+  cardId: string,
+  payload: CardLabelPayload
+): Promise<UnassignLabelFromCardResult> {
+  return httpWriteClient.post<CardLabelPayload, UnassignLabelFromCardResult>(
+    `/api/v1/boards/${boardId}/cards/${cardId}/labels/remove`,
+    payload
+  );
+}

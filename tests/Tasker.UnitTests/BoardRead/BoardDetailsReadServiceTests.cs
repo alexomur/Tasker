@@ -151,11 +151,12 @@ public class BoardDetailsReadServiceTests
                 Title: "Card 1",
                 Description: "Desc",
                 Order: 1,
-                CreatedByUserId: memberUserId,
+                CreatedByUserId: members[0].UserId,
                 CreatedAt: new DateTimeOffset(2025, 1, 1, 12, 5, 0, TimeSpan.Zero),
                 UpdatedAt: new DateTimeOffset(2025, 1, 1, 12, 10, 0, TimeSpan.Zero),
                 DueDate: null,
-                AssigneeUserIds: Array.Empty<Guid>())
+                AssigneeUserIds: Array.Empty<Guid>(),
+                LabelIds: Array.Empty<Guid>())
         };
 
         var snapshotView = new BoardDetailsView(
@@ -219,6 +220,7 @@ public class BoardDetailsReadServiceTests
         Guid boardId;
         Guid ownerId;
         Guid assigneeId;
+        Guid labelId;
         DateTimeOffset now = new(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
         using (var seedContext = new BoardWriteDbContext(dbOptions))
@@ -246,7 +248,10 @@ public class BoardDetailsReadServiceTests
 
             board.AddMember(assigneeId, WriteBoardMemberRole.Member, now.AddMinutes(2));
 
-            board.AddLabel("Bug", "#ff0000", "Bug label");
+            var label = board.AddLabel("Bug", "#ff0000", "Bug label");
+            labelId = label.Id;
+
+            board.AttachLabelToCard(card.Id, labelId, now.AddMinutes(3));
 
             seedContext.Boards.Add(board);
             await seedContext.SaveChangesAsync();
@@ -292,6 +297,7 @@ public class BoardDetailsReadServiceTests
         var cardView = result.Cards.Single();
         cardView.Title.Should().Be("First card");
         cardView.AssigneeUserIds.Should().ContainSingle(id => id == assigneeId);
+        cardView.LabelIds.Should().ContainSingle(id => id == labelId);
 
         snapshotStore.Upserts.Should().ContainSingle(u => u.BoardId == boardId);
         var upsert = snapshotStore.Upserts.Single();

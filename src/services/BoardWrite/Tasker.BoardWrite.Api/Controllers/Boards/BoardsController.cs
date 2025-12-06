@@ -5,12 +5,14 @@ using Tasker.BoardWrite.Api.Controllers.Boards.Models;
 using Tasker.BoardWrite.Application.Abstractions.Services;
 using Tasker.BoardWrite.Application.Boards.Commands.AddBoardMember;
 using Tasker.BoardWrite.Application.Boards.Commands.AddColumn;
+using Tasker.BoardWrite.Application.Boards.Commands.AssignLabelToCard;
 using Tasker.BoardWrite.Application.Boards.Commands.AssignMemberToCard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateCard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateLabel;
 using Tasker.BoardWrite.Application.Boards.Commands.MoveCard;
 using Tasker.BoardWrite.Application.Boards.Commands.SetCardDueDate;
+using Tasker.BoardWrite.Application.Boards.Commands.UnassignLabelFromCard;
 using Tasker.BoardWrite.Application.Boards.Commands.UnassignMemberFromCard;
 using Tasker.BoardWrite.Application.Boards.Commands.UpdateCard;
 using Tasker.BoardWrite.Application.Boards.Queries.GetBoardDetails;
@@ -274,6 +276,48 @@ public sealed class BoardsController : ControllerBase
             BoardId: boardId,
             CardId: cardId,
             UserId: request.UserId);
+
+        var result = await _mediator.Send(cmd, ct);
+
+        return Ok(result);
+    }
+    
+    /// <summary>
+    /// Назначает метку карточке.
+    /// </summary>
+    [HttpPost("{boardId:guid}/cards/{cardId:guid}/labels")]
+    [ProducesResponseType(typeof(AssignLabelToCardResult), StatusCodes.Status200OK)]
+    public async Task<ActionResult<AssignLabelToCardResult>> AssignLabelToCard(
+        Guid boardId,
+        Guid cardId,
+        [FromBody] CardLabelRequest request,
+        CancellationToken ct)
+    {
+        var cmd = new AssignLabelToCardCommand(
+            BoardId: boardId,
+            CardId: cardId,
+            LabelId: request.LabelId);
+
+        var result = await _mediator.Send(cmd, ct);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Снимает метку с карточки.
+    /// </summary>
+    [HttpPost("{boardId:guid}/cards/{cardId:guid}/labels/remove")]
+    [ProducesResponseType(typeof(UnassignLabelFromCardResult), StatusCodes.Status200OK)]
+    public async Task<ActionResult<UnassignLabelFromCardResult>> UnassignLabelFromCard(
+        Guid boardId,
+        Guid cardId,
+        [FromBody] CardLabelRequest request,
+        CancellationToken ct)
+    {
+        var cmd = new UnassignLabelFromCardCommand(
+            BoardId: boardId,
+            CardId: cardId,
+            LabelId: request.LabelId);
 
         var result = await _mediator.Send(cmd, ct);
 

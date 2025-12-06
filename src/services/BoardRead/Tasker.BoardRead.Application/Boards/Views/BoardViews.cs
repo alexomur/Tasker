@@ -66,7 +66,8 @@ public sealed record BoardCardView(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? DueDate,
-    IReadOnlyCollection<Guid> AssigneeUserIds);
+    IReadOnlyCollection<Guid> AssigneeUserIds,
+    IReadOnlyCollection<Guid> LabelIds);
 
 // TODO: Move all authorization away from here
 /// <summary>

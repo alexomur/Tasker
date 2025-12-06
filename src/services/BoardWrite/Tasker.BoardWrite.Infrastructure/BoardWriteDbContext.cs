@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tasker.BoardWrite.Domain.Boards;
 
@@ -29,12 +30,10 @@ public sealed class BoardWriteDbContext : DbContext
             v => v.UtcDateTime,
             v => new DateTimeOffset(DateTime.SpecifyKind(v, DateTimeKind.Utc), TimeSpan.Zero));
 
-        // Конвертер списка исполнителей карточки в строку и обратно (JSON)
         var assigneeIdsConverter = new ValueConverter<List<Guid>, string>(
             v => SerializeAssigneeIds(v),
             v => DeserializeAssigneeIds(v));
 
-        // Комparer для списков GUID'ов (нужен EF, чтобы отслеживать изменения коллекции)
         var assigneeIdsComparer = new ValueComparer<List<Guid>>(
             (l1, l2) =>
                 l1 == l2 ||
@@ -53,7 +52,6 @@ public sealed class BoardWriteDbContext : DbContext
         base.OnModelCreating(modelBuilder);
     }
 
-    // Обёртки вокруг JsonSerializer — чтобы не тащить optional-параметры в expression tree
     private static string SerializeAssigneeIds(List<Guid> ids) =>
         JsonSerializer.Serialize(ids);
 
@@ -197,16 +195,36 @@ public sealed class BoardWriteDbContext : DbContext
         builder.Property(c => c.DueDate)
             .HasConversion(dtoToUtc);
 
-        // Маппим приватное поле _assigneeUserIds в JSON-колонку assignee_user_ids
         builder.Property<List<Guid>>("_assigneeUserIds")
             .HasColumnName("assignee_user_ids")
             .HasConversion(assigneeIdsConverter)
             .Metadata.SetValueComparer(assigneeIdsComparer);
-        // если хочешь тип json в MySQL:
-        //    .HasColumnType("json");
 
-        // Метки и публичное свойство AssigneeUserIds доменно используются, но EF храним только в backing field
-        builder.Ignore(c => c.Labels);
+        // many-to-many Card <-> Label через join-таблицу card_labels
+        builder.HasMany(c => c.Labels)
+            .WithMany()
+            .UsingEntity<Dictionary<string, object>>(
+                "card_labels",
+                j => j
+                    .HasOne<Label>()
+                    .WithMany()
+                    .HasForeignKey("LabelId")
+                    .OnDelete(DeleteBehavior.Cascade),
+                j => j
+                    .HasOne<Card>()
+                    .WithMany()
+                    .HasForeignKey("CardId")
+                    .OnDelete(DeleteBehavior.Cascade),
+                j =>
+                {
+                    j.ToTable("card_labels");
+                    j.HasKey("CardId", "LabelId");
+                    j.HasIndex("LabelId");
+                });
+
+        builder.Navigation(c => c.Labels)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.Ignore(c => c.AssigneeUserIds);
         builder.Ignore(c => c.DomainEvents);
 

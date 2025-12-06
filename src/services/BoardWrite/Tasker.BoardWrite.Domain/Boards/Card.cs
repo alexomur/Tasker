@@ -202,6 +202,28 @@ public sealed class Card : Entity
             OccurredAt: now));
     }
 
+    public void AddLabel(Label label, DateTimeOffset now)
+    {
+        if (label is null)
+            throw new ArgumentNullException(nameof(label));
+
+        if (_labels.Any(l => l.Id == label.Id))
+            return;
+
+        _labels.Add(label);
+        Touch(now);
+    }
+
+    public void RemoveLabel(Guid labelId, DateTimeOffset now)
+    {
+        var label = _labels.FirstOrDefault(l => l.Id == labelId);
+        if (label is null)
+            return;
+
+        _labels.Remove(label);
+        Touch(now);
+    }
+
     private void Touch(DateTimeOffset now) => UpdatedAt = now;
     
     private static string? NormalizeDescription(string? description)
