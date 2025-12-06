@@ -12,6 +12,7 @@ using StackExchange.Redis;
 using Tasker.Auth.Infrastructure;
 using Tasker.BoardRead.Api.Security;
 using Tasker.BoardRead.Application.Boards.Abstractions;
+using Tasker.BoardRead.Application.Boards.Queries.GetMyBoards;
 using Tasker.BoardRead.Application.Users.Abstractions;
 using Tasker.BoardRead.Infrastructure.Boards;
 using Tasker.BoardRead.Infrastructure.Users;
@@ -31,7 +32,7 @@ builder.Host.UseSerilog((ctx, cfg) => cfg
 
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger + Bearer auth как в BoardWrite
+// Swagger + Bearer auth
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -67,6 +68,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddProblemDetails();
+builder.Services.AddControllers();
 
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "live" });
@@ -170,7 +172,13 @@ builder.Services.AddScoped<IBoardDetailsReadService, BoardDetailsReadService>();
 builder.Services.AddScoped<IBoardListReadService, BoardListReadService>();
 builder.Services.AddScoped<IUserReadService, AuthUserReadService>();
 
-// CORS для фронта (как в BoardWrite)
+// MediatR
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssemblies(typeof(GetMyBoardsQuery).Assembly);
+});
+
+// CORS для фронта
 const string frontendCorsPolicy = "FrontendDev";
 builder.Services.AddCors(options =>
 {
@@ -187,7 +195,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// CORS до логгирования/авторизации, как в Write
 app.UseCors(frontendCorsPolicy);
 
 app.UseSerilogRequestLogging();
@@ -242,38 +249,6 @@ app.MapHealthChecks("/readyz", new HealthCheckOptions
 app.MapGet("/healthz/quick", () => Results.Ok(new { status = "ok" }))
     .WithTags("system");
 
-// ---------- /api/v1/boards/{boardId} ----------
-
-app.MapGet("/api/v1/boards/{boardId:guid}", async (
-        Guid boardId,
-        IBoardDetailsReadService boards,
-        CancellationToken ct) =>
-    {
-        var view = await boards.GetBoardAsync(boardId, ct);
-        if (view is null)
-        {
-            return Results.NotFound(new { message = "Board not found" });
-        }
-
-        return Results.Ok(view);
-    })
-    .RequireAuthorization();
-
-// ---------- /api/v1/boards?mine=true ----------
-
-app.MapGet("/api/v1/boards", async (
-        bool mine,
-        IBoardListReadService boards,
-        CancellationToken ct) =>
-    {
-        if (!mine)
-        {
-            return Results.BadRequest(new { message = "Only /api/v1/boards?mine=true is supported for now." });
-        }
-
-        var list = await boards.GetMyBoardsAsync(ct);
-        return Results.Ok(list);
-    })
-    .RequireAuthorization();
+app.MapControllers();
 
 app.Run();

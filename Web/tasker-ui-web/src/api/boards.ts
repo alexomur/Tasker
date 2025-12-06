@@ -6,7 +6,7 @@ export function getBoardDetails(boardId: string): Promise<BoardDetails> {
 }
 
 export function getMyBoards(): Promise<BoardListItem[]> {
-  return httpReadClient.get<BoardListItem[]>("/api/v1/boards?mine=true");
+  return httpReadClient.get<BoardListItem[]>("/api/v1/boards/my");
 }
 
 export interface BoardTemplate {
@@ -88,7 +88,7 @@ export function updateCard(
 }
 
 export interface SetCardDueDatePayload {
-  dueDate: string | null; // ISO-строка или null
+  dueDate: string | null;
 }
 
 export interface SetCardDueDateResult {
@@ -113,7 +113,7 @@ export function setCardDueDate(
 
 export interface AddBoardMemberPayload {
   userId: string;
-  role: number; // BoardMemberRole: 0=Owner,1=Admin,2=Member,3=Viewer
+  role: number;
 }
 
 /**

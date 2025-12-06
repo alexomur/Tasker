@@ -38,17 +38,11 @@ public sealed class BoardsController : ControllerBase
     /// Возвращает список досок текущего пользователя.
     /// В будущем будет перенесено в BoardRead.
     /// </summary>
-    [HttpGet]
+    [HttpGet("my")]
     [ProducesResponseType(typeof(IReadOnlyCollection<MyBoardListItemResult>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyCollection<MyBoardListItemResult>>> GetBoards(
-        [FromQuery] bool mine,
+    public async Task<ActionResult<IReadOnlyCollection<MyBoardListItemResult>>> GetMyBoards(
         CancellationToken ct)
     {
-        if (!mine)
-        {
-            return BadRequest("Сейчас поддерживается только запрос /api/v1/boards?mine=true.");
-        }
-
         var result = await _mediator.Send(new GetMyBoardsQuery(), ct);
         return Ok(result);
     }
@@ -179,7 +173,7 @@ public sealed class BoardsController : ControllerBase
             $"/api/v1/boards/{boardId}/cards/{result.CardId}",
             result);
     }
-    
+
     /// <summary>
     /// Обновляет существующую карточку в рамках доски.
     /// </summary>
@@ -201,7 +195,7 @@ public sealed class BoardsController : ControllerBase
 
         return Ok(result);
     }
-    
+
     /// <summary>
     /// Перемещает карточку в другую колонку.
     /// </summary>
@@ -222,7 +216,7 @@ public sealed class BoardsController : ControllerBase
 
         return Ok(result);
     }
-    
+
     /// <summary>
     /// Устанавливает или сбрасывает дедлайн карточки.
     /// </summary>
@@ -242,7 +236,9 @@ public sealed class BoardsController : ControllerBase
         var result = await _mediator.Send(cmd, ct);
 
         return Ok(result);
-    }    /// <summary>
+    }
+
+    /// <summary>
     /// Назначает участника исполнителем по карточке.
     /// </summary>
     [HttpPost("{boardId:guid}/cards/{cardId:guid}/assignees")]
