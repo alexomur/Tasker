@@ -23,6 +23,7 @@ public sealed class BoardTemplateService : IBoardTemplateService
             return;
         }
 
+        // TODO: Refactor using DB templates
         switch (templateCode)
         {
             case BoardTemplateCodes.SoftwareKanban:
