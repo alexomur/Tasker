@@ -1,4 +1,5 @@
 ﻿using Tasker.BoardWrite.Domain.Boards;
+using Tasker.BoardWrite.Application.Boards.Templates;
 
 namespace Tasker.BoardWrite.Application.Abstractions.Services;
 
@@ -11,7 +12,12 @@ public interface IBoardTemplateService
     /// <summary>
     /// Применить шаблон к доске.
     /// Если templateCode == null или пустой, шаблон не применяется.
-    /// Не должен ломать инварианты и может спокойно вызываться только для "свежесозданных" досок.
     /// </summary>
     void ApplyTemplate(Board board, string? templateCode, Guid ownerUserId, DateTimeOffset now);
+
+    /// <summary>
+    /// Вернуть список доступных шаблонов досок.
+    /// Используется для фронта и документации.
+    /// </summary>
+    IReadOnlyCollection<BoardTemplateInfo> GetTemplates();
 }

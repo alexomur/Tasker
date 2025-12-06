@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tasker.BoardWrite.Api.Controllers.Boards.Models;
+using Tasker.BoardWrite.Application.Abstractions.Services;
 using Tasker.BoardWrite.Application.Boards.Commands.AddBoardMember;
 using Tasker.BoardWrite.Application.Boards.Commands.AddColumn;
 using Tasker.BoardWrite.Application.Boards.Commands.AssignMemberToCard;
@@ -281,5 +282,21 @@ public sealed class BoardsController : ControllerBase
         var result = await _mediator.Send(cmd, ct);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Возвращает список доступных шаблонов досок.
+    /// </summary>
+    [HttpGet("templates")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<BoardTemplateDto>), StatusCodes.Status200OK)]
+    public ActionResult<IReadOnlyCollection<BoardTemplateDto>> GetTemplates(
+        [FromServices] IBoardTemplateService templateService)
+    {
+        var list = templateService
+            .GetTemplates()
+            .Select(BoardTemplateDto.FromDomain)
+            .ToArray();
+
+        return Ok(list);
     }
 }
