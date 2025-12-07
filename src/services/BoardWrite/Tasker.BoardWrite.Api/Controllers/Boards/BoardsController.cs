@@ -10,6 +10,9 @@ using Tasker.BoardWrite.Application.Boards.Commands.AssignMemberToCard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateBoard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateCard;
 using Tasker.BoardWrite.Application.Boards.Commands.CreateLabel;
+using Tasker.BoardWrite.Application.Boards.Commands.DeleteBoard;
+using Tasker.BoardWrite.Application.Boards.Commands.DeleteCard;
+using Tasker.BoardWrite.Application.Boards.Commands.DeleteColumn;
 using Tasker.BoardWrite.Application.Boards.Commands.MoveCard;
 using Tasker.BoardWrite.Application.Boards.Commands.SetCardDueDate;
 using Tasker.BoardWrite.Application.Boards.Commands.UnassignLabelFromCard;
@@ -338,5 +341,49 @@ public sealed class BoardsController : ControllerBase
             .ToArray();
 
         return Ok(list);
+    }
+    
+    /// <summary>
+    /// Удаляет доску целиком.
+    /// </summary>
+    [HttpDelete("{boardId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteBoard(
+        Guid boardId,
+        CancellationToken ct)
+    {
+        var cmd = new DeleteBoardCommand(boardId);
+        await _mediator.Send(cmd, ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Удаляет колонку на доске.
+    /// </summary>
+    [HttpDelete("{boardId:guid}/columns/{columnId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteColumn(
+        Guid boardId,
+        Guid columnId,
+        CancellationToken ct)
+    {
+        var cmd = new DeleteColumnCommand(boardId, columnId);
+        await _mediator.Send(cmd, ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Удаляет карточку на доске.
+    /// </summary>
+    [HttpDelete("{boardId:guid}/cards/{cardId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteCard(
+        Guid boardId,
+        Guid cardId,
+        CancellationToken ct)
+    {
+        var cmd = new DeleteCardCommand(boardId, cardId);
+        await _mediator.Send(cmd, ct);
+        return NoContent();
     }
 }

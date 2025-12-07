@@ -385,6 +385,44 @@ public sealed class Board : Entity
             ? null
             : description.Trim();
     }
+    
+    /// <summary>
+    /// Удаляет колонку с доски вместе со всеми карточками в этой колонке.
+    /// </summary>
+    /// <param name="columnId">Идентификатор колонки.</param>
+    /// <param name="now">Текущее время в формате UTC.</param>
+    public void RemoveColumn(Guid columnId, DateTimeOffset now)
+    {
+        var column = _columns.FirstOrDefault(c => c.Id == columnId);
+        if (column is null)
+            return;
+
+        _cards.RemoveAll(c => c.ColumnId == columnId);
+
+        _columns.Remove(column);
+        Touch(now);
+    }
+
+    /// <summary>
+    /// Удаляет метку с доски и со всех карточек, где она была назначена.
+    /// </summary>
+    /// <param name="labelId">Идентификатор метки.</param>
+    /// <param name="now">Текущее время в формате UTC.</param>
+    public void RemoveLabel(Guid labelId, DateTimeOffset now)
+    {
+        var label = _labels.FirstOrDefault(l => l.Id == labelId);
+        if (label is null)
+            return;
+
+        // Убираем эту метку из всех карточек
+        foreach (var card in _cards)
+        {
+            card.RemoveLabel(labelId, now);
+        }
+
+        _labels.Remove(label);
+        Touch(now);
+    }
 
     private void Touch(DateTimeOffset now) => UpdatedAt = now;
 }

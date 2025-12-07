@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { BoardListItem } from "../types/board";
-import { getMyBoards, createBoard, getBoardTemplates } from "../api/boards";
+import { getMyBoards, createBoard, getBoardTemplates, deleteBoard } from "../api/boards";
 import type { BoardTemplate } from "../api/boards";
 import { useAuth } from "../auth/AuthContext";
 
@@ -104,6 +104,25 @@ export default function BoardsPage() {
   function handleLogout() {
     logout();
     navigate("/login", { replace: true });
+  }
+
+  async function handleDeleteBoard(id: string, title: string) {
+    const ok = window.confirm(
+      `Удалить доску "${title}"? Это действие необратимо.`
+    );
+    if (!ok) {
+      return;
+    }
+
+    try {
+      await deleteBoard(id);
+      await loadBoards();
+    } catch (err) {
+      console.error("Не удалось удалить доску", err);
+      const message =
+        err instanceof Error ? err.message : "Не удалось удалить доску.";
+      alert(message);
+    }
   }
 
   function formatRole(role: number): string {
@@ -238,6 +257,23 @@ export default function BoardsPage() {
     opacity: 0.8,
   };
 
+  const cardHeaderRowStyle: React.CSSProperties = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "8px",
+  };
+
+  const cardDeleteButtonStyle: React.CSSProperties = {
+    padding: "4px 8px",
+    borderRadius: "4px",
+    border: "none",
+    backgroundColor: "#f44336",
+    color: "#ffffff",
+    fontSize: "11px",
+    cursor: "pointer",
+  };
+
   return (
     <div style={pageContainerStyle}>
       <div style={pageInnerStyle}>
@@ -308,31 +344,42 @@ export default function BoardsPage() {
         {!isLoading && !error && boards.length > 0 && (
           <div style={listStyle}>
             {boards.map((board) => (
-              <button
+              <div
                 key={board.id}
-                type="button"
                 style={cardStyle}
                 onClick={() => handleOpenBoard(board.id)}
+                role="button"
               >
-                <h2 style={cardTitleStyle}>{board.title}</h2>
+                <div style={cardHeaderRowStyle}>
+                  <h2 style={cardTitleStyle}>{board.title}</h2>
+                  <button
+                    type="button"
+                    style={cardDeleteButtonStyle}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleDeleteBoard(board.id, board.title);
+                    }}
+                  >
+                    Удалить
+                  </button>
+                </div>
+
                 {board.description && (
                   <p style={cardDescriptionStyle}>{board.description}</p>
                 )}
+
                 <div style={cardMetaStyle}>
                   <span>Роль: {formatRole(board.myRole)}</span>
                   <span>
                     Создана:{" "}
-                    {new Date(board.createdAt).toLocaleDateString(
-                      undefined,
-                      {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                      }
-                    )}
+                    {new Date(board.createdAt).toLocaleDateString(undefined, {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
                   </span>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}

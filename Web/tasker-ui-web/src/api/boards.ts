@@ -290,3 +290,24 @@ export function unassignLabelFromCard(
     payload
   );
 }
+
+// Удаление доски целиком
+export function deleteBoard(boardId: string): Promise<void> {
+  return httpWriteClient
+    .delete<unknown>(`/api/v1/boards/${boardId}`)
+    .then(() => {});
+}
+
+// Удаление колонки вместе с её карточками
+export function deleteColumn(boardId: string, columnId: string): Promise<void> {
+  return httpWriteClient
+    .delete<unknown>(`/api/v1/boards/${boardId}/columns/${columnId}`)
+    .then(() => {});
+}
+
+// Удаление карточки
+export function deleteCard(boardId: string, cardId: string): Promise<void> {
+  return httpWriteClient
+    .delete<unknown>(`/api/v1/boards/${boardId}/cards/${cardId}`)
+    .then(() => {});
+}

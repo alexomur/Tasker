@@ -30,7 +30,7 @@ public sealed class BoardRepository : IBoardRepository
             .Include(b => b.Members)
             .Include(b => b.Labels)
             .Include(b => b.Cards)
-            .ThenInclude(c => c.Labels)
+                .ThenInclude(c => c.Labels)
             .FirstOrDefaultAsync(b => b.Id == id, ct);
     }
 
@@ -46,7 +46,7 @@ public sealed class BoardRepository : IBoardRepository
             .Include(b => b.Members)
             .Include(b => b.Labels)
             .Include(b => b.Cards)
-            .ThenInclude(c => c.Labels)
+                .ThenInclude(c => c.Labels)
             .FirstOrDefaultAsync(b => b.Id == id, ct);
     }
 
@@ -80,5 +80,26 @@ public sealed class BoardRepository : IBoardRepository
             .ToListAsync(ct);
 
         return boards;
+    }
+
+    /// <summary>
+    /// Помечает доску на удаление. Фактическое удаление произойдет при SaveChangesAsync().
+    /// Ожидается, что каскадные правила в БД/EF удалят связанные сущности.
+    /// </summary>
+    public Task RemoveAsync(Board board, CancellationToken ct = default)
+    {
+        _db.Boards.Remove(board);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Помечает произвольную сущность агрегата на удаление
+    /// (колонку, карточку, метку, участника и т.п.).
+    /// </summary>
+    public Task RemoveEntityAsync<TEntity>(TEntity entity, CancellationToken ct = default)
+        where TEntity : Entity
+    {
+        _db.Set<TEntity>().Remove(entity);
+        return Task.CompletedTask;
     }
 }

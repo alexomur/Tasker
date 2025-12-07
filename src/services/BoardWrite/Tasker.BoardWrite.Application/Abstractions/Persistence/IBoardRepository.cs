@@ -37,4 +37,16 @@ public interface IBoardRepository
     /// Возвращает доски, в которых указанный пользователь является активным участником.
     /// </summary>
     Task<IReadOnlyCollection<Board>> GetBoardsForUserAsync(Guid userId, CancellationToken ct);
+
+    /// <summary>
+    /// Помечает доску на удаление. Фактическое удаление произойдет при SaveChangesAsync().
+    /// Ожидается, что каскадные правила в БД/EF удалят связанные сущности.
+    /// </summary>
+    Task RemoveAsync(Board board, CancellationToken ct = default);
+
+    /// <summary>
+    /// Помечает произвольную сущность агрегата на удаление
+    /// (колонку, карточку, метку, участника и т.п.).
+    /// </summary>
+    Task RemoveEntityAsync<TEntity>(TEntity entity, CancellationToken ct = default) where TEntity : Entity;
 }

@@ -13,6 +13,8 @@ import {
   unassignMemberFromCard,
   assignLabelToCard,
   unassignLabelFromCard,
+  deleteColumn,
+  deleteCard,
 } from "../api/boards";
 import type {
   BoardDetails,
@@ -206,6 +208,56 @@ const [labelsEditorCardId, setLabelsEditorCardId] =
         err instanceof Error
           ? err.message
           : "Не удалось создать карточку.";
+      alert(message);
+    }
+  }
+
+  async function handleDeleteCard(card: BoardCard) {
+  if (!board) {
+    return;
+  }
+
+  const ok = window.confirm(
+    `Удалить карточку "${card.title}"? Это действие необратимо.`
+  );
+  if (!ok) {
+    return;
+  }
+
+  try {
+    await deleteCard(board.id, card.id);
+    await loadBoard();
+  } catch (err) {
+    console.error("Не удалось удалить карточку", err);
+    const message =
+      err instanceof Error
+        ? err.message
+        : "Не удалось удалить карточку.";
+    alert(message);
+  }
+}
+
+async function handleDeleteColumn(column: BoardColumn) {
+    if (!board) {
+      return;
+    }
+
+    const ok = window.confirm(
+      `Удалить колонку "${column.title}" и все её карточки? Это действие необратимо.`
+    );
+    if (!ok) {
+      return;
+    }
+
+    try {
+      await deleteColumn(board.id, column.id);
+      await loadBoard();
+    } catch (err) {
+      console.error("Не удалось удалить колонку", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Не удалось удалить колонку.";
       alert(message);
     }
   }
@@ -810,6 +862,8 @@ const [labelsEditorCardId, setLabelsEditorCardId] =
                 formatUserShort={formatUserShort}
                 getCardLabels={getCardLabels}
                 onEditCardLabels={(card) => setLabelsEditorCardId(card.id)}
+                onDeleteColumn={handleDeleteColumn}
+                onDeleteCard={handleDeleteCard}
             />
             ))}
         </main>
@@ -840,9 +894,10 @@ interface ColumnViewProps {
   canMoveRight: boolean;
   canManageAssignees: boolean;
   formatUserShort: (userId: string) => string;
-
   getCardLabels: (card: BoardCard) => BoardLabel[];
   onEditCardLabels: (card: BoardCard) => void;
+  onDeleteColumn: (column: BoardColumn) => void;
+  onDeleteCard: (card: BoardCard) => void;
 }
 
 function ColumnView({
@@ -861,10 +916,22 @@ function ColumnView({
   formatUserShort,
   getCardLabels,
   onEditCardLabels,
+  onDeleteColumn,
+  onDeleteCard,
 }: ColumnViewProps) {
   return (
     <section style={columnStyle}>
-      <h2 style={columnTitleStyle}>{column.title}</h2>
+      <div style={columnHeaderRowStyle}>
+        <h2 style={columnTitleStyle}>{column.title}</h2>
+        <button
+          type="button"
+          style={columnDeleteButtonStyle}
+          onClick={() => onDeleteColumn(column)}
+          title="Удалить колонку и все её карточки"
+        >
+          🗑
+        </button>
+      </div>
       {column.description && (
         <p style={columnDescriptionStyle}>{column.description}</p>
       )}
@@ -945,7 +1012,15 @@ function ColumnView({
                     >
                     ✏️
                     </button>
-                </div>
+                    <button
+                      type="button"
+                      style={cardMoveButtonStyle}
+                      onClick={() => onDeleteCard(card)}
+                      title="Удалить карточку"
+                    >
+                      🗑
+                    </button>
+                  </div>
                 </div>
 
                 {card.description && (
@@ -1458,4 +1533,19 @@ const cardLabelPillStyle: React.CSSProperties = {
   fontWeight: 500,
   color: "#172b4d",
   backgroundColor: "#e0e0e0",
+};
+
+const columnHeaderRowStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "4px",
+};
+
+const columnDeleteButtonStyle: React.CSSProperties = {
+  border: "none",
+  backgroundColor: "transparent",
+  cursor: "pointer",
+  fontSize: "12px",
+  padding: "2px 4px",
 };

@@ -91,6 +91,13 @@ export const httpClient = {
       signal,
     });
   },
+
+  delete<TResponse>(path: string, signal?: AbortSignal) {
+    return request<TResponse>(API_WRITE_BASE_URL, path, {
+      method: "DELETE",
+      signal,
+    });
+  },
 };
 
 // Явный алиас — write-клиент
