@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Tasker.Auth.Infrastructure;
 using Tasker.BoardRead.Application.Users.Abstractions;
 using Tasker.BoardRead.Application.Users.Views;

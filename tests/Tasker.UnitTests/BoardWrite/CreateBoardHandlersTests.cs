@@ -89,6 +89,23 @@ public class CreateBoardHandlerTests
 
             return Task.FromResult<IReadOnlyCollection<Board>>(result);
         }
+
+        public Task RemoveAsync(Board board, CancellationToken ct = default)
+        {
+            _boards.Remove(board);
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveEntityAsync<TEntity>(TEntity entity, CancellationToken ct = default)
+            where TEntity : Entity
+        {
+            if (entity is Board board)
+            {
+                _boards.Remove(board);
+            }
+
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeBoardTemplateService : IBoardTemplateService

@@ -21,7 +21,8 @@ public sealed class AssignMemberToCardHandler
     public AssignMemberToCardHandler(
         IBoardRepository boards,
         IUnitOfWork uow,
-        IBoardAccessService boardAccess, IBoardReadModelWriter boardReadModelWriter)
+        IBoardAccessService boardAccess, 
+        IBoardReadModelWriter boardReadModelWriter)
     {
         _boards = boards;
         _uow = uow;
