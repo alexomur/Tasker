@@ -17,7 +17,9 @@ namespace Tasker.BoardWrite.Domain.Errors
         /// </summary>
         public Guid UserId { get; }
 
-        public BoardAccessDeniedException(Guid boardId, Guid userId) : base($"User '{userId}' has no permission to write at board '{boardId}'.", "board_write.access_denied", 403)
+        public BoardAccessDeniedException(Guid boardId, Guid userId) : 
+            base($"User '{userId}' has no permission to write at board '{boardId}'.", 
+                "board_write.access_denied", 403)
         {
             BoardId = boardId;
             UserId = userId;

@@ -7,5 +7,8 @@ public interface IPasswordService
 {
     string Hash(User user, string password);
     
-    PasswordVerificationResult Verify(User user, string hash, string password);
+    PasswordVerificationResult Verify(
+        User user, 
+        string hash, 
+        string password);
 }

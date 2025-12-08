@@ -25,7 +25,7 @@ public sealed class BoardReadModelWriter : IBoardReadModelWriter
         var boardDetails = await _mediator.Send(new GetBoardDetailsQuery(boardId), cancellationToken);
         if (boardDetails is null)
         {
-            // Доска могла быть удалена — можно удалить снапшот, но пока просто игнорируем
+            // TODO: delete snapshot
             return;
         }
 

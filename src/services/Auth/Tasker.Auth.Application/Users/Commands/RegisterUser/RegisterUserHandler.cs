@@ -14,7 +14,10 @@ public sealed class RegisterUserHandler : IRequestHandler<RegisterUserCommand, R
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordService _passwordService;
 
-    public RegisterUserHandler(IUserRepository userRepository, IUnitOfWork unitOfWork, IPasswordService passwordService)
+    public RegisterUserHandler(
+        IUserRepository userRepository, 
+        IUnitOfWork unitOfWork, 
+        IPasswordService passwordService)
     {
         _userRepository = userRepository; 
         _unitOfWork = unitOfWork; 
