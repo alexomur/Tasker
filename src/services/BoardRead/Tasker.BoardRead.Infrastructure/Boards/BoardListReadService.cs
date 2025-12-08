@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Tasker.BoardRead.Application.Boards.Abstractions;
-using Tasker.BoardRead.Application.Boards.Views;
+using Tasker.BoardRead.Domain.BoardViews;
 using Tasker.BoardWrite.Infrastructure;
 using Tasker.Shared.Kernel.Abstractions;
 

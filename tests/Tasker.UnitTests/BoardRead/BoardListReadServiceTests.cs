@@ -6,7 +6,7 @@ using Tasker.BoardWrite.Domain.Boards;
 using Tasker.BoardWrite.Infrastructure;
 using Tasker.Shared.Kernel.Abstractions;
 using DomainBoardMemberRole = Tasker.BoardWrite.Domain.Boards.BoardMemberRole;
-using ReadBoardMemberRole = Tasker.BoardRead.Application.Boards.Views.BoardMemberRole;
+using ReadBoardMemberRole = Tasker.BoardRead.Domain.BoardViews.BoardMemberRole;
 
 namespace Tasker.UnitTests.BoardRead;
 

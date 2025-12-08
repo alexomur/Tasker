@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tasker.BoardRead.Application.Boards.Queries.GetBoardDetails;
 using Tasker.BoardRead.Application.Boards.Queries.GetMyBoards;
-using Tasker.BoardRead.Application.Boards.Views;
+using Tasker.BoardRead.Domain.BoardViews;
 
 namespace Tasker.BoardRead.Api.Controllers.Boards;
 

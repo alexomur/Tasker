@@ -1,6 +1,6 @@
 ﻿using MediatR;
 using Tasker.BoardRead.Application.Boards.Abstractions;
-using Tasker.BoardRead.Application.Boards.Views;
+using Tasker.BoardRead.Domain.BoardViews;
 
 namespace Tasker.BoardRead.Application.Boards.Queries.GetMyBoards;
 

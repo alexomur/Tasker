@@ -1,4 +1,4 @@
-﻿namespace Tasker.BoardRead.Application.Users.Views;
+﻿namespace Tasker.BoardRead.Domain.UserViews;
 
 public sealed record UserView(
     Guid Id,

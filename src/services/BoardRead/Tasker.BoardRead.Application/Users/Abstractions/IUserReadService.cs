@@ -1,4 +1,4 @@
-﻿using Tasker.BoardRead.Application.Users.Views;
+﻿using Tasker.BoardRead.Domain.UserViews;
 
 namespace Tasker.BoardRead.Application.Users.Abstractions;
 

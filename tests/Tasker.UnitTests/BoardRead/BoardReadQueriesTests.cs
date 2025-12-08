@@ -2,8 +2,8 @@
 using Tasker.BoardRead.Application.Boards.Abstractions;
 using Tasker.BoardRead.Application.Boards.Queries.GetBoardDetails;
 using Tasker.BoardRead.Application.Boards.Queries.GetMyBoards;
-using Tasker.BoardRead.Application.Boards.Views;
-using Tasker.BoardRead.Application.Users.Views;
+using Tasker.BoardRead.Domain.BoardViews;
+using Tasker.BoardRead.Domain.UserViews;
 
 namespace Tasker.UnitTests.BoardRead;
 

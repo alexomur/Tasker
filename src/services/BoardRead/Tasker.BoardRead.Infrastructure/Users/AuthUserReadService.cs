@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Tasker.Auth.Infrastructure;
 using Tasker.BoardRead.Application.Users.Abstractions;
-using Tasker.BoardRead.Application.Users.Views;
+using Tasker.BoardRead.Domain.UserViews;
 
 namespace Tasker.BoardRead.Infrastructure.Users;
 
