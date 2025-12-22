@@ -234,7 +234,7 @@ public class BoardDetailsReadServiceTests
                 now: now,
                 description: "Board description");
 
-            var column = board.AddColumn("Todo", now, "Todo column");
+            var column = board.AddColumn("Todo", ownerId, now, "Todo column");
 
             var card = board.CreateCard(
                 columnId: column.Id,
@@ -244,14 +244,14 @@ public class BoardDetailsReadServiceTests
                 description: "Card description",
                 dueDate: now.AddDays(1));
 
-            card.AssignUser(assigneeId, now.AddMinutes(10));
+            card.AssignUser(assigneeId, ownerId, now.AddMinutes(10));
 
-            board.AddMember(assigneeId, WriteBoardMemberRole.Member, now.AddMinutes(2));
+            board.AddMember(assigneeId, WriteBoardMemberRole.Member, ownerId, now.AddMinutes(2));
 
-            var label = board.AddLabel("Bug", "#ff0000", "Bug label");
+            var label = board.AddLabel("Bug", "#ff0000", ownerId, now, "Bug label");
             labelId = label.Id;
 
-            board.AttachLabelToCard(card.Id, labelId, now.AddMinutes(3));
+            board.AttachLabelToCard(card.Id, labelId, ownerId, now.AddMinutes(3));
 
             seedContext.Boards.Add(board);
             await seedContext.SaveChangesAsync();
@@ -318,3 +318,4 @@ public class BoardDetailsReadServiceTests
             .BeEquivalentTo(new[] { ownerId, assigneeId });
     }
 }
+

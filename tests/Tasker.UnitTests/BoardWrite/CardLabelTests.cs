@@ -11,7 +11,7 @@ public sealed class CardLabelTests
         var card = Card.Create(Guid.NewGuid(), Guid.NewGuid(), "Test card", Guid.NewGuid(), 1, now);
         var label = new Label("Bug", null, "#ff0000");
 
-        card.AddLabel(label, now);
+        card.AddLabel(label, Guid.NewGuid(), now);
 
         Assert.Single(card.Labels);
         Assert.Contains(label, card.Labels);
@@ -24,8 +24,8 @@ public sealed class CardLabelTests
         var card = Card.Create(Guid.NewGuid(), Guid.NewGuid(), "Test card", Guid.NewGuid(), 1, now);
         var label = new Label("Bug", null, "#ff0000");
 
-        card.AddLabel(label, now);
-        card.AddLabel(label, now.AddMinutes(1));
+        card.AddLabel(label, Guid.NewGuid(), now);
+        card.AddLabel(label, Guid.NewGuid(), now.AddMinutes(1));
 
         Assert.Single(card.Labels);
         Assert.Contains(label, card.Labels);
@@ -38,8 +38,8 @@ public sealed class CardLabelTests
         var card = Card.Create(Guid.NewGuid(), Guid.NewGuid(), "Test card", Guid.NewGuid(), 1, now);
         var label = new Label("Bug", null, "#ff0000");
 
-        card.AddLabel(label, now);
-        card.RemoveLabel(label.Id, now.AddMinutes(1));
+        card.AddLabel(label, Guid.NewGuid(), now);
+        card.RemoveLabel(label.Id, Guid.NewGuid(), now.AddMinutes(1));
 
         Assert.Empty(card.Labels);
     }
@@ -50,7 +50,7 @@ public sealed class CardLabelTests
         var now = DateTimeOffset.UtcNow;
         var card = Card.Create(Guid.NewGuid(), Guid.NewGuid(), "Test card", Guid.NewGuid(), 1, now);
 
-        card.RemoveLabel(Guid.NewGuid(), now.AddMinutes(1));
+        card.RemoveLabel(Guid.NewGuid(), Guid.NewGuid(), now.AddMinutes(1));
 
         Assert.Empty(card.Labels);
     }
@@ -63,7 +63,7 @@ public sealed class CardLabelTests
         var label = new Label("Bug", null, "#ff0000");
         var later = createdAt.AddMinutes(5);
 
-        card.AddLabel(label, later);
+        card.AddLabel(label, Guid.NewGuid(), later);
 
         Assert.Equal(createdAt, card.CreatedAt);
         Assert.Equal(later, card.UpdatedAt);
@@ -78,8 +78,8 @@ public sealed class CardLabelTests
         var addedAt = createdAt.AddMinutes(1);
         var removedAt = createdAt.AddMinutes(5);
 
-        card.AddLabel(label, addedAt);
-        card.RemoveLabel(label.Id, removedAt);
+        card.AddLabel(label, Guid.NewGuid(), addedAt);
+        card.RemoveLabel(label.Id, Guid.NewGuid(), removedAt);
 
         Assert.Equal(removedAt, card.UpdatedAt);
     }

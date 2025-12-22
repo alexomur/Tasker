@@ -38,6 +38,37 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    environment:
+      - HADOOP_HOME=/opt/hadoop-3.2.1
+      - PATH=/opt/hadoop-3.2.1/bin:/opt/hadoop-3.2.1/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - CLUSTER_NAME=tasker-hdfs
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+      - HDFS_CONF_dfs_replication=1
+      - HDFS_CONF_dfs_permissions_enabled=false
+      - HDFS_CONF_dfs_webhdfs_enabled=true
+    ports:
+      - "9870:9870"
+      - "8020:8020"
+    volumes:
+      - hdfs_namenode:/hadoop/dfs/name
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    environment:
+      - HADOOP_HOME=/opt/hadoop-3.2.1
+      - PATH=/opt/hadoop-3.2.1/bin:/opt/hadoop-3.2.1/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+      - HDFS_CONF_dfs_replication=1
+      - HDFS_CONF_dfs_permissions_enabled=false
+      - HDFS_CONF_dfs_webhdfs_enabled=true
+      - SERVICE_PRECONDITION=namenode:9870
+    depends_on:
+      - namenode
+    volumes:
+      - hdfs_datanode:/hadoop/dfs/data
   
   redpanda:
     image: redpandadata/redpanda:v24.2.7
@@ -119,6 +150,23 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+
+  analytics-ingest:
+    build:
+      context: ../../
+      dockerfile: src/services/AnalyticsIngest/Tasker.AnalyticsIngest.Worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - Kafka__Brokers=redpanda:9092
+      - Hdfs__WebHdfsBaseUrl=http://namenode:9870
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      namenode:
+        condition: service_started
+      datanode:
+        condition: service_started
   
   prometheus:
     image: prom/prometheus:latest
@@ -187,3 +235,5 @@ volumes:
   grafana_data: {}
   cassandra_data1: {}
   redpanda_data: {}
+  hdfs_namenode: {}
+  hdfs_datanode: {}

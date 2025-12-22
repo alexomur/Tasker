@@ -17,16 +17,20 @@ public sealed class AddColumnHandler
     private readonly IUnitOfWork _uow;
     private readonly IBoardAccessService _boardAccess;
     private readonly IBoardReadModelWriter _boardReadModelWriter;
+    private readonly ICurrentUser _currentUser;
 
     public AddColumnHandler(
         IBoardRepository boards,
         IUnitOfWork uow,
-        IBoardAccessService boardAccess, IBoardReadModelWriter boardReadModelWriter)
+        IBoardAccessService boardAccess,
+        IBoardReadModelWriter boardReadModelWriter,
+        ICurrentUser currentUser)
     {
         _boards = boards;
         _uow = uow;
         _boardAccess = boardAccess;
         _boardReadModelWriter = boardReadModelWriter;
+        _currentUser = currentUser;
     }
 
     public async Task<AddColumnResult> Handle(AddColumnCommand cmd, CancellationToken ct)
@@ -39,10 +43,17 @@ public sealed class AddColumnHandler
 
         await _boardAccess.EnsureCanWriteBoardAsync(board.Id, ct);
 
+        if (!_currentUser.IsAuthenticated || _currentUser.UserId is null)
+        {
+            throw new InvalidOperationException("Текущий пользователь не определён.");
+        }
+
+        var createdByUserId = _currentUser.UserId.Value;
         var now = DateTimeOffset.UtcNow;
 
         var column = board.AddColumn(
             title: cmd.Title,
+            createdByUserId: createdByUserId,
             now: now,
             description: cmd.Description);
 

@@ -11,6 +11,7 @@ using Tasker.Auth.Application.Abstractions.Security;
 using Tasker.Auth.Application.Abstractions.Sessions;
 using Tasker.Auth.Application.Users.Commands.RegisterUser;
 using Tasker.Auth.Infrastructure;
+using Tasker.Auth.Infrastructure.Integration;
 using Tasker.Auth.Infrastructure.Persistence;
 using Tasker.Auth.Infrastructure.Security;
 using Tasker.Auth.Infrastructure.Sessions;
@@ -54,6 +55,7 @@ builder.Services.AddDbContext<AuthDbContext>(opt =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddSingleton<IAuthDomainEventMapper, AuthDomainEventMapper>();
 
 builder.Services.AddControllers();
 

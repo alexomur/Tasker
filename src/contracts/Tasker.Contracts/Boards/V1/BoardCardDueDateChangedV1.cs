@@ -7,5 +7,6 @@ public sealed record BoardCardDueDateChangedV1(
     Guid BoardId,
     Guid CardId,
     DateTimeOffset? DueDate,
+    Guid ChangedByUserId,
     DateTimeOffset OccurredAt
 );

@@ -7,5 +7,6 @@ public sealed record BoardCardAssigneesChangedV1(
     Guid BoardId,
     Guid CardId,
     IReadOnlyCollection<Guid> AssigneeUserIds,
+    Guid ChangedByUserId,
     DateTimeOffset OccurredAt
 );

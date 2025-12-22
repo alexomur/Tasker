@@ -14,17 +14,20 @@ public sealed class AssignLabelToCardHandler
     private readonly IBoardAccessService _boardAccess;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IBoardReadModelWriter _readModelWriter;
+    private readonly ICurrentUser _currentUser;
 
     public AssignLabelToCardHandler(
         IBoardRepository boards,
         IBoardAccessService boardAccess,
         IUnitOfWork unitOfWork,
-        IBoardReadModelWriter readModelWriter)
+        IBoardReadModelWriter readModelWriter,
+        ICurrentUser currentUser)
     {
         _boards = boards;
         _boardAccess = boardAccess;
         _unitOfWork = unitOfWork;
         _readModelWriter = readModelWriter;
+        _currentUser = currentUser;
     }
 
     public async Task<AssignLabelToCardResult> Handle(
@@ -39,9 +42,14 @@ public sealed class AssignLabelToCardHandler
 
         await _boardAccess.EnsureCanWriteBoardAsync(board.Id, cancellationToken);
 
+        if (!_currentUser.IsAuthenticated || _currentUser.UserId is null)
+        {
+            throw new InvalidOperationException("Текущий пользователь не определён.");
+        }
+
         var now = DateTimeOffset.UtcNow;
 
-        board.AttachLabelToCard(request.CardId, request.LabelId, now);
+        board.AttachLabelToCard(request.CardId, request.LabelId, _currentUser.UserId.Value, now);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await _readModelWriter.RefreshBoardAsync(board.Id, cancellationToken);

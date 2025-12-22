@@ -17,16 +17,20 @@ public sealed class CreateLabelHandler
     private readonly IUnitOfWork _uow;
     private readonly IBoardAccessService _boardAccess;
     private readonly IBoardReadModelWriter _boardReadModelWriter;
+    private readonly ICurrentUser _currentUser;
 
     public CreateLabelHandler(
         IBoardRepository boards,
         IUnitOfWork uow,
-        IBoardAccessService boardAccess, IBoardReadModelWriter boardReadModelWriter)
+        IBoardAccessService boardAccess,
+        IBoardReadModelWriter boardReadModelWriter,
+        ICurrentUser currentUser)
     {
         _boards = boards;
         _uow = uow;
         _boardAccess = boardAccess;
         _boardReadModelWriter = boardReadModelWriter;
+        _currentUser = currentUser;
     }
 
     public async Task<AddLabelResult> Handle(CreateLabelCommand cmd, CancellationToken ct)
@@ -39,7 +43,15 @@ public sealed class CreateLabelHandler
 
         await _boardAccess.EnsureCanWriteBoardAsync(board.Id, ct);
 
-        var label = board.AddLabel(cmd.Title, cmd.Color, cmd.Description);
+        if (!_currentUser.IsAuthenticated || _currentUser.UserId is null)
+        {
+            throw new InvalidOperationException("Текущий пользователь не определён.");
+        }
+
+        var createdByUserId = _currentUser.UserId.Value;
+        var now = DateTimeOffset.UtcNow;
+
+        var label = board.AddLabel(cmd.Title, cmd.Color, createdByUserId, now, cmd.Description);
 
         await _boards.AddEntityAsync(label, ct);
 
