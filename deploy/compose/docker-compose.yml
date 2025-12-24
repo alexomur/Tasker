@@ -1,4 +1,4 @@
-﻿name: tasker
+name: tasker
 services:
   mysql:
     image: mysql:8.0
@@ -54,6 +54,13 @@ services:
       - "8020:8020"
     volumes:
       - hdfs_namenode:/hadoop/dfs/name
+      - ./hadoop/profile.d/hadoop.sh:/etc/profile.d/hadoop.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "hdfs dfsadmin -safemode get | grep -q 'OFF'"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
 
   datanode:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
@@ -69,7 +76,12 @@ services:
       - namenode
     volumes:
       - hdfs_datanode:/hadoop/dfs/data
-  
+      - ./hadoop/profile.d/hadoop.sh:/etc/profile.d/hadoop.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "hdfs dfs -test -d / || hdfs dfs -mkdir -p /tmp >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
   redpanda:
     image: redpandadata/redpanda:v24.2.7
     command:
@@ -167,7 +179,235 @@ services:
         condition: service_started
       datanode:
         condition: service_started
+  hdfs-init:
+    image: curlimages/curl:8.7.1
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      '
+      for i in $(seq 1 30); do
+        if curl -sf "http://namenode:9870/webhdfs/v1/?op=GETHOMEDIRECTORY" >/dev/null; then
+          break;
+        fi;
+        echo "waiting for WebHDFS..."; sleep 5;
+      done &&
+      curl -sf -X PUT "http://namenode:9870/webhdfs/v1/tmp?op=MKDIRS&permission=1777" &&
+      curl -sf -X PUT "http://namenode:9870/webhdfs/v1/user/hive/warehouse?op=MKDIRS&permission=0775"
+      '
+    depends_on:
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_healthy
   
+  hive-metastore-db:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=metastore
+      - POSTGRES_USER=hive
+      - POSTGRES_PASSWORD=hive
+    volumes:
+      - hive_metastore_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hive -d metastore"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    environment:
+      - SERVICE_PRECONDITION=namenode:9870 datanode:9864 hive-metastore-db:5432
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+      - HIVE_SITE_CONF_javax_jdo_option_ConnectionURL=jdbc:postgresql://hive-metastore-db:5432/metastore
+      - HIVE_SITE_CONF_javax_jdo_option_ConnectionDriverName=org.postgresql.Driver
+      - HIVE_SITE_CONF_javax_jdo_option_ConnectionUserName=hive
+      - HIVE_SITE_CONF_javax_jdo_option_ConnectionPassword=hive
+      - HIVE_SITE_CONF_hive_metastore_uris=thrift://hive-metastore:9083
+    command: ["/opt/hive/bin/hive", "--service", "metastore", "-p", "9083"]
+    depends_on:
+      hive-metastore-db:
+        condition: service_healthy
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_healthy
+      hdfs-init:
+        condition: service_completed_successfully
+    ports:
+      - "9083:9083"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "cat < /dev/null > /dev/tcp/localhost/9083"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    environment:
+      - SERVICE_PRECONDITION=namenode:9870 datanode:9864 hive-metastore:9083
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+      - HIVE_SITE_CONF_hive_metastore_uris=thrift://hive-metastore:9083
+      - HIVE_SERVER2_THRIFT_PORT=10000
+      - HIVE_SITE_CONF_hive_mapred_supports_subdirectories=true
+      - HIVE_SITE_CONF_mapreduce_input_fileinputformat_input_dir_recursive=true
+      - MAPRED_CONF_mapreduce_input_fileinputformat_input_dir_recursive=true
+    depends_on:
+      hive-metastore:
+        condition: service_started
+      hdfs-init:
+        condition: service_completed_successfully
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "cat < /dev/null > /dev/tcp/localhost/10000"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  hue:
+    image: gethue/hue:latest
+    environment:
+      - HUE_SECRET_KEY=tasker-demo-secret
+      - HUE_LOG_LEVEL=INFO
+    volumes:
+      - ./hue/hue.ini:/usr/share/hue/desktop/conf/hue.ini:ro
+    ports:
+      - "8888:8888"
+    depends_on:
+      hive-server:
+        condition: service_healthy
+
+  spark-master:
+    image: apache/spark:3.5.1
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+    ports:
+      - "7077:7077"
+      - "8081:8080"
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - spark-master
+      - --port
+      - "7077"
+      - --webui-port
+      - "8080"
+    depends_on:
+      namenode:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f org.apache.spark.deploy.master.Master >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  spark-worker:
+    image: apache/spark:3.5.1
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+    ports:
+      - "8082:8081"
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - spark://spark-master:7077
+      - --webui-port
+      - "8081"
+    depends_on:
+      spark-master:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f org.apache.spark.deploy.worker.Worker >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  analytics-hdfs-kafka:
+    image: apache/spark:3.5.1
+    restart: unless-stopped
+    environment:
+      - PYSPARK_PYTHON=python3
+      - KAFKA_BOOTSTRAP_SERVERS=redpanda:9092
+      - HDFS_RAW_BASE=/raw/events
+      - KAFKA_TARGET_TOPIC=analytics.hdfs-events-v1
+      - SPARK_CHECKPOINT_BASE=/analytics/checkpoints/hdfs_to_kafka
+      - MAX_FILES_PER_TRIGGER=50
+      - SPARK_LOG_LEVEL=WARN
+    volumes:
+      - ./spark/apps:/opt/spark-apps:ro
+    command:
+      - /opt/spark/bin/spark-submit
+      - --master
+      - spark://spark-master:7077
+      - --packages
+      - org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1
+      - --conf
+      - spark.jars.ivy=/tmp/ivy
+      - --conf
+      - spark.hadoop.fs.defaultFS=hdfs://namenode:8020
+      - --conf
+      - spark.sql.session.timeZone=UTC
+      - /opt/spark-apps/hdfs_to_kafka_stream.py
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_healthy
+      spark-master:
+        condition: service_started
+      hdfs-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f hdfs_to_kafka_stream.py >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  analytics-batch:
+    image: apache/spark:3.5.1
+    profiles:
+      - analytics
+    environment:
+      - PYSPARK_PYTHON=python3
+      - HDFS_NAMENODE=namenode:8020
+      - HDFS_RAW_BASE=/raw/events
+      - HDFS_ANALYTICS_BASE=/analytics
+      - SPARK_LOG_LEVEL=WARN
+    volumes:
+      - ./spark/apps:/opt/spark-apps:ro
+    command:
+      - /opt/spark/bin/spark-submit
+      - --master
+      - spark://spark-master:7077
+      - --conf
+      - spark.jars.ivy=/tmp/ivy
+      - --conf
+      - spark.hadoop.fs.defaultFS=hdfs://namenode:8020
+      - --conf
+      - spark.sql.session.timeZone=UTC
+      - /opt/spark-apps/boardwrite_daily_stats.py
+    depends_on:
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_healthy
+      spark-master:
+        condition: service_started
+      hdfs-init:
+        condition: service_completed_successfully
+
   prometheus:
     image: prom/prometheus:latest
     volumes:
@@ -195,10 +435,10 @@ services:
       context: ../../Web/tasker-ui-web
       dockerfile: Dockerfile
     environment:
-      - VITE_API_BASE_URL=http://localhost:8080/api/boardwrite
-      - VITE_BOARDREAD_API_BASE_URL=http://localhost:8080/api/boardread
-      - VITE_BOARDWRITE_API_BASE_URL=http://localhost:8080/api/boardwrite
-      - VITE_AUTH_API_BASE_URL=http://localhost:8080/api
+      - VITE_API_BASE_URL=http://127.0.0.1:8080/api/boardwrite
+      - VITE_BOARDREAD_API_BASE_URL=http://127.0.0.1:8080/api/boardread
+      - VITE_BOARDWRITE_API_BASE_URL=http://127.0.0.1:8080/api/boardwrite
+      - VITE_AUTH_API_BASE_URL=http://127.0.0.1:8080/api
     ports:
       - "5173:5173"
     depends_on:
@@ -237,3 +477,4 @@ volumes:
   redpanda_data: {}
   hdfs_namenode: {}
   hdfs_datanode: {}
+  hive_metastore_db: {}

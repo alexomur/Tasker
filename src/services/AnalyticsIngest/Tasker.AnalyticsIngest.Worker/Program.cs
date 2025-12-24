@@ -16,7 +16,12 @@ var builder = Host.CreateDefaultBuilder(args)
         services.Configure<HdfsOptions>(context.Configuration.GetSection("Hdfs"));
         services.Configure<IngestOptions>(context.Configuration.GetSection("Ingest"));
 
-        services.AddHttpClient<HdfsWebClient>();
+        services
+            .AddHttpClient<HdfsWebClient>()
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AllowAutoRedirect = false
+            });
         services.AddHostedService<KafkaHdfsIngestWorker>();
     });
 
