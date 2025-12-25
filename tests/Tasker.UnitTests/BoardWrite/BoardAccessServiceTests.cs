@@ -70,7 +70,7 @@ public class BoardAccessServiceTests
         var viewerUserId = Guid.NewGuid();
 
         var board = Board.Create("Board", ownerUserId, now);
-        board.AddMember(viewerUserId, BoardMemberRole.Viewer, now);
+        board.AddMember(viewerUserId, BoardMemberRole.Viewer, ownerUserId, now);
 
         db.Boards.Add(board);
         await db.SaveChangesAsync();
@@ -152,3 +152,4 @@ public class BoardAccessServiceTests
             .Where(ex => ex.UserId == Guid.Empty);
     }
 }
+

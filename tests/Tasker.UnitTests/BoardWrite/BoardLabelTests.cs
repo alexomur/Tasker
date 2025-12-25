@@ -11,12 +11,12 @@ public sealed class BoardLabelTests
         var ownerId = Guid.NewGuid();
         var board = Board.Create("Test board", ownerId, now);
 
-        var label = board.AddLabel("Bug", "#ff0000");
-        var column = board.AddColumn("Todo", now);
+        var label = board.AddLabel("Bug", "#ff0000", ownerId, now);
+        var column = board.AddColumn("Todo", ownerId, now);
         var card = board.CreateCard(column.Id, "Task 1", ownerId, now);
 
         var later = now.AddMinutes(5);
-        board.AttachLabelToCard(card.Id, label.Id, later);
+        board.AttachLabelToCard(card.Id, label.Id, ownerId, later);
 
         Assert.Single(card.Labels);
         Assert.Contains(label, card.Labels);
@@ -30,15 +30,15 @@ public sealed class BoardLabelTests
         var ownerId = Guid.NewGuid();
         var board = Board.Create("Test board", ownerId, now);
 
-        var label = board.AddLabel("Bug", "#ff0000");
-        var column = board.AddColumn("Todo", now);
+        var label = board.AddLabel("Bug", "#ff0000", ownerId, now);
+        var column = board.AddColumn("Todo", ownerId, now);
         var card = board.CreateCard(column.Id, "Task 1", ownerId, now);
 
         var t1 = now.AddMinutes(1);
         var t2 = now.AddMinutes(2);
 
-        board.AttachLabelToCard(card.Id, label.Id, t1);
-        board.AttachLabelToCard(card.Id, label.Id, t2);
+        board.AttachLabelToCard(card.Id, label.Id, ownerId, t1);
+        board.AttachLabelToCard(card.Id, label.Id, ownerId, t2);
 
         Assert.Single(card.Labels);
         Assert.Contains(label, card.Labels);
@@ -50,12 +50,12 @@ public sealed class BoardLabelTests
         var now = DateTimeOffset.UtcNow;
         var ownerId = Guid.NewGuid();
         var board = Board.Create("Test board", ownerId, now);
-        var label = board.AddLabel("Bug", "#ff0000");
+        var label = board.AddLabel("Bug", "#ff0000", ownerId, now);
 
         var cardId = Guid.NewGuid();
 
         var ex = Assert.Throws<InvalidOperationException>(
-            () => board.AttachLabelToCard(cardId, label.Id, now.AddMinutes(1)));
+            () => board.AttachLabelToCard(cardId, label.Id, ownerId, now.AddMinutes(1)));
 
         Assert.Contains("Карточка не найдена", ex.Message);
     }
@@ -67,12 +67,12 @@ public sealed class BoardLabelTests
         var ownerId = Guid.NewGuid();
         var board = Board.Create("Test board", ownerId, now);
 
-        var column = board.AddColumn("Todo", now);
+        var column = board.AddColumn("Todo", ownerId, now);
         var card = board.CreateCard(column.Id, "Task 1", ownerId, now);
         var labelId = Guid.NewGuid();
 
         var ex = Assert.Throws<InvalidOperationException>(
-            () => board.AttachLabelToCard(card.Id, labelId, now.AddMinutes(1)));
+            () => board.AttachLabelToCard(card.Id, labelId, ownerId, now.AddMinutes(1)));
 
         Assert.Contains("Метка не найдена", ex.Message);
     }
@@ -84,15 +84,15 @@ public sealed class BoardLabelTests
         var ownerId = Guid.NewGuid();
         var board = Board.Create("Test board", ownerId, now);
 
-        var label = board.AddLabel("Bug", "#ff0000");
-        var column = board.AddColumn("Todo", now);
+        var label = board.AddLabel("Bug", "#ff0000", ownerId, now);
+        var column = board.AddColumn("Todo", ownerId, now);
         var card = board.CreateCard(column.Id, "Task 1", ownerId, now);
 
         var t1 = now.AddMinutes(1);
         var t2 = now.AddMinutes(2);
 
-        board.AttachLabelToCard(card.Id, label.Id, t1);
-        board.DetachLabelFromCard(card.Id, label.Id, t2);
+        board.AttachLabelToCard(card.Id, label.Id, ownerId, t1);
+        board.DetachLabelFromCard(card.Id, label.Id, ownerId, t2);
 
         Assert.Empty(card.Labels);
         Assert.Equal(t2, board.UpdatedAt);
@@ -105,16 +105,18 @@ public sealed class BoardLabelTests
         var ownerId = Guid.NewGuid();
         var board = Board.Create("Test board", ownerId, now);
 
-        var label = board.AddLabel("Bug", "#ff0000");
-        var column = board.AddColumn("Todo", now);
+        var label = board.AddLabel("Bug", "#ff0000", ownerId, now);
+        var column = board.AddColumn("Todo", ownerId, now);
         var card = board.CreateCard(column.Id, "Task 1", ownerId, now);
 
         var beforeUpdated = board.UpdatedAt;
         var later = now.AddMinutes(5);
 
-        board.DetachLabelFromCard(card.Id, label.Id, later);
+        board.DetachLabelFromCard(card.Id, label.Id, ownerId, later);
 
         Assert.Empty(card.Labels);
         Assert.Equal(later, board.UpdatedAt);
     }
 }
+
+

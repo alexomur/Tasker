@@ -112,6 +112,15 @@ public sealed class Card : Entity
         DateTimeOffset? dueDate = null)
     {
         var card = new Card(boardId, columnId, title, createdByUserId, order, now, description, dueDate);
+        card.AddEvent(new CardCreated(
+            BoardId: card.BoardId,
+            CardId: card.Id,
+            ColumnId: card.ColumnId,
+            Title: card.Title,
+            Description: card.Description,
+            Order: card.Order,
+            CreatedByUserId: createdByUserId,
+            OccurredAt: now));
         return card;
     }
 
@@ -136,17 +145,54 @@ public sealed class Card : Entity
         Touch(now);
     }
 
+    public void UpdateDetails(string title, string? description, Guid updatedByUserId, DateTimeOffset now)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Title cannot be empty.", nameof(title));
+
+        var normalizedTitle = title.Trim();
+        var normalizedDescription = NormalizeDescription(description);
+
+        if (string.Equals(Title, normalizedTitle, StringComparison.Ordinal) &&
+            string.Equals(Description, normalizedDescription, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        Title = normalizedTitle;
+        Description = normalizedDescription;
+        Touch(now);
+
+        AddEvent(new CardUpdated(
+            BoardId: BoardId,
+            CardId: Id,
+            Title: Title,
+            Description: Description,
+            UpdatedByUserId: updatedByUserId,
+            OccurredAt: now));
+    }
+
     /// <summary>
     /// Перемещает карточку в другую колонку с указанным порядком.
     /// </summary>
-    public void MoveToColumn(Guid newColumnId, int newOrder, DateTimeOffset now)
+    public void MoveToColumn(Guid newColumnId, int newOrder, Guid movedByUserId, DateTimeOffset now)
     {
         if (newColumnId == Guid.Empty)
             throw new ArgumentException("ColumnId cannot be empty.", nameof(newColumnId));
 
+        var fromColumnId = ColumnId;
         ColumnId = newColumnId;
         Order = newOrder;
         Touch(now);
+
+        AddEvent(new CardMoved(
+            BoardId: BoardId,
+            CardId: Id,
+            FromColumnId: fromColumnId,
+            ToColumnId: ColumnId,
+            Order: Order,
+            MovedByUserId: movedByUserId,
+            OccurredAt: now));
     }
 
     /// <summary>
@@ -158,7 +204,7 @@ public sealed class Card : Entity
         Touch(now);
     }
 
-    public void SetDueDate(DateTimeOffset? dueDate, DateTimeOffset now)
+    public void SetDueDate(DateTimeOffset? dueDate, Guid changedByUserId, DateTimeOffset now)
     {
         DueDate = dueDate;
         Touch(now);
@@ -167,10 +213,11 @@ public sealed class Card : Entity
             BoardId: BoardId,
             CardId: Id,
             NewDueDate: DueDate,
+            ChangedByUserId: changedByUserId,
             OccurredAt: now));
     }
 
-    public void AssignUser(Guid userId, DateTimeOffset now)
+    public void AssignUser(Guid userId, Guid changedByUserId, DateTimeOffset now)
     {
         if (userId == Guid.Empty)
             throw new ArgumentException("UserId cannot be empty.", nameof(userId));
@@ -185,10 +232,11 @@ public sealed class Card : Entity
             BoardId: BoardId,
             CardId: Id,
             AssigneeUserIds: _assigneeUserIds.ToArray(),
+            ChangedByUserId: changedByUserId,
             OccurredAt: now));
     }
 
-    public void UnassignUser(Guid userId, DateTimeOffset now)
+    public void UnassignUser(Guid userId, Guid changedByUserId, DateTimeOffset now)
     {
         if (!_assigneeUserIds.Remove(userId))
             return;
@@ -199,10 +247,11 @@ public sealed class Card : Entity
             BoardId: BoardId,
             CardId: Id,
             AssigneeUserIds: _assigneeUserIds.ToArray(),
+            ChangedByUserId: changedByUserId,
             OccurredAt: now));
     }
 
-    public void AddLabel(Label label, DateTimeOffset now)
+    public void AddLabel(Label label, Guid attachedByUserId, DateTimeOffset now)
     {
         if (label is null)
             throw new ArgumentNullException(nameof(label));
@@ -212,9 +261,16 @@ public sealed class Card : Entity
 
         _labels.Add(label);
         Touch(now);
+
+        AddEvent(new CardLabelAttached(
+            BoardId: BoardId,
+            CardId: Id,
+            LabelId: label.Id,
+            AttachedByUserId: attachedByUserId,
+            OccurredAt: now));
     }
 
-    public void RemoveLabel(Guid labelId, DateTimeOffset now)
+    public void RemoveLabel(Guid labelId, Guid detachedByUserId, DateTimeOffset now)
     {
         var label = _labels.FirstOrDefault(l => l.Id == labelId);
         if (label is null)
@@ -222,6 +278,22 @@ public sealed class Card : Entity
 
         _labels.Remove(label);
         Touch(now);
+
+        AddEvent(new CardLabelDetached(
+            BoardId: BoardId,
+            CardId: Id,
+            LabelId: labelId,
+            DetachedByUserId: detachedByUserId,
+            OccurredAt: now));
+    }
+
+    public void MarkDeleted(Guid deletedByUserId, DateTimeOffset now)
+    {
+        AddEvent(new CardDeleted(
+            BoardId: BoardId,
+            CardId: Id,
+            DeletedByUserId: deletedByUserId,
+            OccurredAt: now));
     }
 
     private void Touch(DateTimeOffset now) => UpdatedAt = now;

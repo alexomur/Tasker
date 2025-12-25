@@ -58,7 +58,7 @@ public class BoardTemplateServiceTests
         var board = CreateEmptyBoard();
         var now = DateTimeOffset.UtcNow;
 
-        board.AddColumn("Existing", now);
+        board.AddColumn("Existing", board.OwnerUserId, now);
 
         _service.ApplyTemplate(board, BoardTemplateCodes.SoftwareKanban, board.OwnerUserId, now);
 
@@ -73,7 +73,7 @@ public class BoardTemplateServiceTests
         var board = CreateEmptyBoard();
         var now = DateTimeOffset.UtcNow;
 
-        board.AddLabel("Existing label", "#000000", null);
+        board.AddLabel("Existing label", "#000000", board.OwnerUserId, now, null);
 
         _service.ApplyTemplate(board, BoardTemplateCodes.SoftwareKanban, board.OwnerUserId, now);
 
@@ -195,3 +195,4 @@ public class BoardTemplateServiceTests
         });
     }
 }
+

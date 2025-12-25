@@ -6,5 +6,6 @@ public sealed record CardDueDateChanged(
     Guid BoardId,
     Guid CardId,
     DateTimeOffset? NewDueDate,
+    Guid ChangedByUserId,
     DateTimeOffset OccurredAt
 ) : IDomainEvent;

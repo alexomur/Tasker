@@ -51,11 +51,15 @@ public sealed class LoginUserHandler
             throw new InvalidCredentialsException();
         }
 
+        var now = DateTimeOffset.UtcNow;
+
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
-            user.ChangePasswordHash(_passwordService.Hash(user, cmd.Password), DateTimeOffset.UtcNow);
-            await _unitOfWork.SaveChangesAsync(ct);
+            user.ChangePasswordHash(_passwordService.Hash(user, cmd.Password), now);
         }
+
+        user.RecordLoginSuccess(now);
+        await _unitOfWork.SaveChangesAsync(ct);
 
         var token = await _authSessionStore.CreateAsync(user.Id, cmd.Ttl, ct);
         return new LoginUserResult(user.Id, token, (long)cmd.Ttl.TotalSeconds);

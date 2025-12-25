@@ -55,8 +55,8 @@ public class LoginUserHandlerTests
         created.UserId.Should().Be(user.Id);
         created.Ttl.Should().Be(ttl);
 
-        // Без rehash-а SaveChanges не зовём
-        unitOfWork.SaveChangesCallCount.Should().Be(0);
+        // Сохраняем событие успешного логина
+        unitOfWork.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]

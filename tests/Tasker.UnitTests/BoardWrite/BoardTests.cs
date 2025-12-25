@@ -50,7 +50,7 @@ public class BoardTests
         var addTime = now.AddMinutes(5);
 
         // Act
-        var member = board.AddMember(otherUserId, BoardMemberRole.Member, addTime);
+        var member = board.AddMember(otherUserId, BoardMemberRole.Member, ownerId, addTime);
 
         // Assert
         board.Members.Should().HaveCount(2);
@@ -71,10 +71,10 @@ public class BoardTests
         var userId = Guid.NewGuid();
 
         var board = Board.Create("Board", ownerId, now);
-        board.AddMember(userId, BoardMemberRole.Member, now.AddMinutes(1));
+        board.AddMember(userId, BoardMemberRole.Member, ownerId, now.AddMinutes(1));
 
         // Act
-        var act = () => board.AddMember(userId, BoardMemberRole.Admin, now.AddMinutes(2));
+        var act = () => board.AddMember(userId, BoardMemberRole.Admin, ownerId, now.AddMinutes(2));
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -91,12 +91,12 @@ public class BoardTests
 
         var board = Board.Create("Board", ownerId, now);
         var joinedAt = now.AddMinutes(1);
-        board.AddMember(userId, BoardMemberRole.Member, joinedAt);
+        board.AddMember(userId, BoardMemberRole.Member, ownerId, joinedAt);
 
         var removeTime = now.AddMinutes(10);
 
         // Act
-        board.RemoveMember(userId, removeTime);
+        board.RemoveMember(userId, ownerId, removeTime);
 
         // Assert
         var member = board.Members.Single(m => m.UserId == userId);
@@ -116,7 +116,7 @@ public class BoardTests
         var removeTime = now.AddMinutes(5);
 
         // Act
-        var act = () => board.RemoveMember(ownerId, removeTime);
+        var act = () => board.RemoveMember(ownerId, ownerId, removeTime);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()
@@ -132,11 +132,12 @@ public class BoardTests
     {
         // Arrange
         var now = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
-        var board = Board.Create("Board", Guid.NewGuid(), now);
+        var ownerId = Guid.NewGuid();
+        var board = Board.Create("Board", ownerId, now);
 
         // Act
-        var firstColumn = board.AddColumn("Todo", now.AddMinutes(1));
-        var secondColumn = board.AddColumn("In progress", now.AddMinutes(2));
+        var firstColumn = board.AddColumn("Todo", ownerId, now.AddMinutes(1));
+        var secondColumn = board.AddColumn("In progress", ownerId, now.AddMinutes(2));
 
         // Assert
         firstColumn.BoardId.Should().Be(board.Id);
@@ -156,8 +157,8 @@ public class BoardTests
         var ownerId = Guid.NewGuid();
         var board = Board.Create("Board", ownerId, now);
 
-        var column1 = board.AddColumn("Todo", now.AddMinutes(1));
-        var column2 = board.AddColumn("Done", now.AddMinutes(2));
+        var column1 = board.AddColumn("Todo", ownerId, now.AddMinutes(1));
+        var column2 = board.AddColumn("Done", ownerId, now.AddMinutes(2));
 
         var userId = Guid.NewGuid();
 
@@ -217,15 +218,15 @@ public class BoardTests
         var userId = Guid.NewGuid();
 
         var board = Board.Create("Board", ownerId, now);
-        var columnFrom = board.AddColumn("From", now.AddMinutes(1));
-        var columnTo = board.AddColumn("To", now.AddMinutes(2));
+        var columnFrom = board.AddColumn("From", ownerId, now.AddMinutes(1));
+        var columnTo = board.AddColumn("To", ownerId, now.AddMinutes(2));
 
         var card = board.CreateCard(columnFrom.Id, "Card", userId, now.AddMinutes(3));
 
         var moveTime = now.AddMinutes(4);
 
         // Act
-        board.MoveCard(card.Id, columnTo.Id, targetOrder: 100, moveTime);
+        board.MoveCard(card.Id, columnTo.Id, targetOrder: 100, movedByUserId: userId, now: moveTime);
 
         // Assert
         card.ColumnId.Should().Be(columnTo.Id);
@@ -242,7 +243,7 @@ public class BoardTests
         var userId = Guid.NewGuid();
 
         var board = Board.Create("Board", ownerId, now);
-        var column = board.AddColumn("Col", now.AddMinutes(1));
+        var column = board.AddColumn("Col", ownerId, now.AddMinutes(1));
         var card = board.CreateCard(column.Id, "Card", userId, now.AddMinutes(2));
 
         var reorderTime = now.AddMinutes(3);
@@ -264,16 +265,17 @@ public class BoardTests
         var userId = Guid.NewGuid();
 
         var board = Board.Create("Board", ownerId, now);
-        var column = board.AddColumn("Col", now.AddMinutes(1));
+        var column = board.AddColumn("Col", ownerId, now.AddMinutes(1));
         var card = board.CreateCard(column.Id, "Card", userId, now.AddMinutes(2));
 
         var removeTime = now.AddMinutes(3);
 
         // Act
-        board.RemoveCard(card.Id, removeTime);
+        board.RemoveCard(card.Id, userId, removeTime);
 
         // Assert
         board.Cards.Should().NotContain(c => c.Id == card.Id);
         board.UpdatedAt.Should().Be(removeTime);
     }
 }
+

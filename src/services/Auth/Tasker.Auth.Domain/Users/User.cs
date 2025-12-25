@@ -128,6 +128,11 @@ public class User : Entity
         UpdatedAt = changeAt;
         AddEvent(new UserPasswordChanged(Id, changeAt));
     }
+
+    public void RecordLoginSuccess(DateTimeOffset at)
+    {
+        AddEvent(new UserLoginSucceeded(Id, Email.Value, at));
+    }
     
     public void Lock(string reason, DateTimeOffset lockedAt)
     {
