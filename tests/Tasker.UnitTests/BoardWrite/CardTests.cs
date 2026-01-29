@@ -38,7 +38,8 @@ public class CardTests
         card.UpdatedAt.Should().Be(now);
         card.DueDate.Should().Be(now.AddDays(1));
         card.AssigneeUserIds.Should().BeEmpty();
-        card.DomainEvents.Should().BeEmpty();
+        card.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<CardCreated>();
     }
 
     [Fact]
@@ -60,9 +61,10 @@ public class CardTests
 
         var newDueDate = now.AddDays(3);
         var eventTime = now.AddMinutes(10);
+        var changedByUserId = Guid.NewGuid();
 
         // Act
-        card.SetDueDate(newDueDate, eventTime);
+        card.SetDueDate(newDueDate, changedByUserId, eventTime);
 
         // Assert
         card.DueDate.Should().Be(newDueDate);
@@ -75,6 +77,7 @@ public class CardTests
         evt.BoardId.Should().Be(boardId);
         evt.CardId.Should().Be(card.Id);
         evt.NewDueDate.Should().Be(newDueDate);
+        evt.ChangedByUserId.Should().Be(changedByUserId);
         evt.OccurredAt.Should().Be(eventTime);
     }
 
@@ -97,9 +100,10 @@ public class CardTests
             now: now);
 
         var eventTime = now.AddMinutes(5);
+        var changedByUserId = Guid.NewGuid();
 
         // Act
-        card.AssignUser(assigneeId, eventTime);
+        card.AssignUser(assigneeId, changedByUserId, eventTime);
 
         // Assert
         card.AssigneeUserIds.Should().ContainSingle()
@@ -114,6 +118,7 @@ public class CardTests
         evt.CardId.Should().Be(card.Id);
         evt.AssigneeUserIds.Should().ContainSingle()
             .Which.Should().Be(assigneeId);
+        evt.ChangedByUserId.Should().Be(changedByUserId);
         evt.OccurredAt.Should().Be(eventTime);
     }
 
@@ -136,12 +141,13 @@ public class CardTests
             now: now);
 
         var eventTime = now.AddMinutes(5);
+        var changedByUserId = Guid.NewGuid();
 
-        card.AssignUser(assigneeId, eventTime);
+        card.AssignUser(assigneeId, changedByUserId, eventTime);
         var eventsAfterFirstAssign = card.DomainEvents.Count;
 
         // Act
-        card.AssignUser(assigneeId, eventTime.AddMinutes(1));
+        card.AssignUser(assigneeId, changedByUserId, eventTime.AddMinutes(1));
 
         // Assert
         card.AssigneeUserIds.Should().ContainSingle()
@@ -167,13 +173,14 @@ public class CardTests
             order: 1,
             now: now);
 
-        card.AssignUser(assigneeId, now.AddMinutes(1));
+        card.AssignUser(assigneeId, Guid.NewGuid(), now.AddMinutes(1));
         card.ClearDomainEvents(); // чистим события от AssignUser, чтобы проверять только Unassign
 
         var eventTime = now.AddMinutes(2);
+        var changedByUserId = Guid.NewGuid();
 
         // Act
-        card.UnassignUser(assigneeId, eventTime);
+        card.UnassignUser(assigneeId, changedByUserId, eventTime);
 
         // Assert
         card.AssigneeUserIds.Should().BeEmpty();
@@ -186,6 +193,7 @@ public class CardTests
         evt.AssigneeUserIds.Should().BeEmpty();
         evt.BoardId.Should().Be(boardId);
         evt.CardId.Should().Be(card.Id);
+        evt.ChangedByUserId.Should().Be(changedByUserId);
         evt.OccurredAt.Should().Be(eventTime);
     }
 
@@ -206,9 +214,10 @@ public class CardTests
             createdByUserId: createdByUserId,
             order: 1,
             now: now);
+        card.ClearDomainEvents();
 
         // Act
-        card.UnassignUser(notAssigneeId, now.AddMinutes(1));
+        card.UnassignUser(notAssigneeId, Guid.NewGuid(), now.AddMinutes(1));
 
         // Assert
         card.AssigneeUserIds.Should().BeEmpty();
@@ -279,7 +288,7 @@ public class CardTests
         var moveTime = now.AddMinutes(2);
 
         // Act
-        card.MoveToColumn(targetColumnId, newOrder: 10, moveTime);
+        card.MoveToColumn(targetColumnId, newOrder: 10, movedByUserId: Guid.NewGuid(), now: moveTime);
 
         // Assert
         card.ColumnId.Should().Be(targetColumnId);

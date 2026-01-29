@@ -17,16 +17,20 @@ namespace Tasker.BoardWrite.Application.Boards.Commands.AddBoardMember
         private readonly IUnitOfWork _uow;
         private readonly IBoardAccessService _boardAccess;
         private readonly IBoardReadModelWriter _boardReadModelWriter;
+        private readonly ICurrentUser _currentUser;
 
         public AddBoardMemberHandler(
             IBoardRepository boards,
             IUnitOfWork uow,
-            IBoardAccessService boardAccess, IBoardReadModelWriter boardReadModelWriter)
+            IBoardAccessService boardAccess,
+            IBoardReadModelWriter boardReadModelWriter,
+            ICurrentUser currentUser)
         {
             _boards = boards;
             _uow = uow;
             _boardAccess = boardAccess;
             _boardReadModelWriter = boardReadModelWriter;
+            _currentUser = currentUser;
         }
 
         public async Task<AddBoardMemberResult> Handle(AddBoardMemberCommand cmd, CancellationToken ct)
@@ -39,9 +43,15 @@ namespace Tasker.BoardWrite.Application.Boards.Commands.AddBoardMember
 
             await _boardAccess.EnsureCanManageMembersAsync(board.Id, ct);
 
+            if (!_currentUser.IsAuthenticated || _currentUser.UserId is null)
+            {
+                throw new InvalidOperationException("Текущий пользователь не определён.");
+            }
+
+            var addedByUserId = _currentUser.UserId.Value;
             var now = DateTimeOffset.UtcNow;
 
-            var member = board.AddMember(cmd.UserId, cmd.Role, now);
+            var member = board.AddMember(cmd.UserId, cmd.Role, addedByUserId, now);
 
             await _boards.AddEntityAsync(member, ct);
 

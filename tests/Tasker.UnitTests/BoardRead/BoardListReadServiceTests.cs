@@ -43,7 +43,7 @@ public class BoardListReadServiceTests
 
         // Доска, где пользователь — Member
         var memberBoard = Board.Create("Member board", otherUserId, now);
-        memberBoard.AddMember(currentUserId, DomainBoardMemberRole.Member, now);
+        memberBoard.AddMember(currentUserId, DomainBoardMemberRole.Member, otherUserId, now);
 
         // Доска, где пользователя нет
         var otherBoard = Board.Create("Other board", otherUserId, now);
@@ -117,7 +117,7 @@ public class BoardListReadServiceTests
         var ownerUserId = Guid.NewGuid();
 
         var board = Board.Create("Old board", ownerUserId, now);
-        var member = board.AddMember(userId, DomainBoardMemberRole.Member, now);
+        var member = board.AddMember(userId, DomainBoardMemberRole.Member, ownerUserId, now);
         member.Leave(now.AddHours(1)); // делаем участие неактивным
 
         db.Boards.Add(board);
@@ -147,3 +147,5 @@ public class BoardListReadServiceTests
         view.MyRole.Should().Be(ReadBoardMemberRole.Viewer);
     }
 }
+
+

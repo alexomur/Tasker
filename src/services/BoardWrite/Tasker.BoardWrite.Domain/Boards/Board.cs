@@ -1,3 +1,4 @@
+using Tasker.BoardWrite.Domain.Events.BoardEvents;
 using Tasker.Shared.Kernel.Abstractions;
 
 namespace Tasker.BoardWrite.Domain.Boards;
@@ -105,6 +106,13 @@ public sealed class Board : Entity
 
         board._members.Add(ownerMember);
 
+        board.AddEvent(new BoardCreated(
+            BoardId: board.Id,
+            OwnerUserId: ownerUserId,
+            Title: board.Title,
+            Description: board.Description,
+            OccurredAt: now));
+
         return board;
     }
 
@@ -162,7 +170,7 @@ public sealed class Board : Entity
     /// <param name="userId">Идентификатор пользователя.</param>
     /// <param name="role">Роль участника на доске.</param>
     /// <param name="now">Текущее время в формате UTC.</param>
-    public BoardMember AddMember(Guid userId, BoardMemberRole role, DateTimeOffset now)
+    public BoardMember AddMember(Guid userId, BoardMemberRole role, Guid addedByUserId, DateTimeOffset now)
     {
         if (userId == Guid.Empty)
             throw new ArgumentException("Идентификатор пользователя не может быть пустым.", nameof(userId));
@@ -174,6 +182,13 @@ public sealed class Board : Entity
         _members.Add(member);
         Touch(now);
 
+        AddEvent(new BoardMemberAdded(
+            BoardId: Id,
+            UserId: userId,
+            Role: role,
+            AddedByUserId: addedByUserId,
+            OccurredAt: now));
+
         return member;
     }
 
@@ -182,7 +197,7 @@ public sealed class Board : Entity
     /// </summary>
     /// <param name="userId">Идентификатор пользователя.</param>
     /// <param name="now">Текущее время в формате UTC.</param>
-    public void RemoveMember(Guid userId, DateTimeOffset now)
+    public void RemoveMember(Guid userId, Guid removedByUserId, DateTimeOffset now)
     {
         var member = _members.FirstOrDefault(m => m.UserId == userId && m.IsActive);
         if (member is null)
@@ -193,6 +208,12 @@ public sealed class Board : Entity
 
         member.Leave(now);
         Touch(now);
+
+        AddEvent(new BoardMemberRemoved(
+            BoardId: Id,
+            UserId: userId,
+            RemovedByUserId: removedByUserId,
+            OccurredAt: now));
     }
 
     /// <summary>
@@ -201,7 +222,7 @@ public sealed class Board : Entity
     /// <param name="title">Название колонки.</param>
     /// <param name="now">Текущее время в формате UTC.</param>
     /// <param name="description">Описание колонки, может быть пустым или null.</param>
-    public Column AddColumn(string title, DateTimeOffset now, string? description = null)
+    public Column AddColumn(string title, Guid createdByUserId, DateTimeOffset now, string? description = null)
     {
         var nextOrder = _columns.Count == 0
             ? 0
@@ -210,6 +231,15 @@ public sealed class Board : Entity
         var column = Column.Create(Id, title, nextOrder, now, description);
         _columns.Add(column);
         Touch(now);
+
+        AddEvent(new ColumnCreated(
+            BoardId: Id,
+            ColumnId: column.Id,
+            Title: column.Title,
+            Description: column.Description,
+            Order: column.Order,
+            CreatedByUserId: createdByUserId,
+            OccurredAt: now));
 
         return column;
     }
@@ -236,10 +266,20 @@ public sealed class Board : Entity
     /// <param name="title">Название метки.</param>
     /// <param name="color">Цвет метки.</param>
     /// <param name="description">Описание метки, может быть пустым или null.</param>
-    public Label AddLabel(string title, string color, string? description = null)
+    public Label AddLabel(string title, string color, Guid createdByUserId, DateTimeOffset now, string? description = null)
     {
         var label = new Label(title, description, color);
         _labels.Add(label);
+
+        AddEvent(new LabelCreated(
+            BoardId: Id,
+            LabelId: label.Id,
+            Title: label.Title,
+            Description: label.Description,
+            Color: label.Color,
+            CreatedByUserId: createdByUserId,
+            OccurredAt: now));
+
         return label;
     }
 
@@ -296,7 +336,7 @@ public sealed class Board : Entity
     /// Если не указано — карточка будет добавлена в конец.
     /// </param>
     /// <param name="now">Текущее время в формате UTC.</param>
-    public void MoveCard(Guid cardId, Guid targetColumnId, int? targetOrder, DateTimeOffset now)
+    public void MoveCard(Guid cardId, Guid targetColumnId, int? targetOrder, Guid movedByUserId, DateTimeOffset now)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card is null)
@@ -312,7 +352,7 @@ public sealed class Board : Entity
             .DefaultIfEmpty(0)
             .Max() + 1;
 
-        card.MoveToColumn(targetColumnId, order, now);
+        card.MoveToColumn(targetColumnId, order, movedByUserId, now);
         Touch(now);
     }
 
@@ -337,17 +377,26 @@ public sealed class Board : Entity
     /// </summary>
     /// <param name="cardId">Идентификатор карточки.</param>
     /// <param name="now">Текущее время в формате UTC.</param>
-    public void RemoveCard(Guid cardId, DateTimeOffset now)
+    public void RemoveCard(Guid cardId, Guid deletedByUserId, DateTimeOffset now)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card is null)
             return;
 
+        card.MarkDeleted(deletedByUserId, now);
         _cards.Remove(card);
         Touch(now);
     }
 
-    public void AttachLabelToCard(Guid cardId, Guid labelId, DateTimeOffset now)
+    public void MarkDeleted(Guid deletedByUserId, DateTimeOffset now)
+    {
+        AddEvent(new BoardDeleted(
+            BoardId: Id,
+            DeletedByUserId: deletedByUserId,
+            OccurredAt: now));
+    }
+
+    public void AttachLabelToCard(Guid cardId, Guid labelId, Guid attachedByUserId, DateTimeOffset now)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card is null)
@@ -357,17 +406,17 @@ public sealed class Board : Entity
         if (label is null)
             throw new InvalidOperationException("Метка не найдена на доске.");
 
-        card.AddLabel(label, now);
+        card.AddLabel(label, attachedByUserId, now);
         Touch(now);
     }
 
-    public void DetachLabelFromCard(Guid cardId, Guid labelId, DateTimeOffset now)
+    public void DetachLabelFromCard(Guid cardId, Guid labelId, Guid detachedByUserId, DateTimeOffset now)
     {
         var card = _cards.FirstOrDefault(c => c.Id == cardId);
         if (card is null)
             throw new InvalidOperationException("Карточка не найдена на доске.");
 
-        card.RemoveLabel(labelId, now);
+        card.RemoveLabel(labelId, detachedByUserId, now);
         Touch(now);
     }
 
@@ -391,7 +440,7 @@ public sealed class Board : Entity
     /// </summary>
     /// <param name="columnId">Идентификатор колонки.</param>
     /// <param name="now">Текущее время в формате UTC.</param>
-    public void RemoveColumn(Guid columnId, DateTimeOffset now)
+    public void RemoveColumn(Guid columnId, Guid deletedByUserId, DateTimeOffset now)
     {
         var column = _columns.FirstOrDefault(c => c.Id == columnId);
         if (column is null)
@@ -401,6 +450,12 @@ public sealed class Board : Entity
 
         _columns.Remove(column);
         Touch(now);
+
+        AddEvent(new ColumnDeleted(
+            BoardId: Id,
+            ColumnId: columnId,
+            DeletedByUserId: deletedByUserId,
+            OccurredAt: now));
     }
 
     /// <summary>
@@ -408,7 +463,7 @@ public sealed class Board : Entity
     /// </summary>
     /// <param name="labelId">Идентификатор метки.</param>
     /// <param name="now">Текущее время в формате UTC.</param>
-    public void RemoveLabel(Guid labelId, DateTimeOffset now)
+    public void RemoveLabel(Guid labelId, Guid deletedByUserId, DateTimeOffset now)
     {
         var label = _labels.FirstOrDefault(l => l.Id == labelId);
         if (label is null)
@@ -417,11 +472,17 @@ public sealed class Board : Entity
         // Убираем эту метку из всех карточек
         foreach (var card in _cards)
         {
-            card.RemoveLabel(labelId, now);
+            card.RemoveLabel(labelId, deletedByUserId, now);
         }
 
         _labels.Remove(label);
         Touch(now);
+
+        AddEvent(new LabelDeleted(
+            BoardId: Id,
+            LabelId: labelId,
+            DeletedByUserId: deletedByUserId,
+            OccurredAt: now));
     }
 
     private void Touch(DateTimeOffset now) => UpdatedAt = now;

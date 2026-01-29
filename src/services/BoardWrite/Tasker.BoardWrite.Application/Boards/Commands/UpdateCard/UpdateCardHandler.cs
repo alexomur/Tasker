@@ -18,16 +18,20 @@ public sealed class UpdateCardHandler
     private readonly IUnitOfWork _uow;
     private readonly IBoardAccessService _boardAccess;
     private readonly IBoardReadModelWriter _boardReadModelWriter;
+    private readonly ICurrentUser _currentUser;
 
     public UpdateCardHandler(
         IBoardRepository boards,
         IUnitOfWork uow,
-        IBoardAccessService boardAccess, IBoardReadModelWriter boardReadModelWriter)
+        IBoardAccessService boardAccess,
+        IBoardReadModelWriter boardReadModelWriter,
+        ICurrentUser currentUser)
     {
         _boards = boards;
         _uow = uow;
         _boardAccess = boardAccess;
         _boardReadModelWriter = boardReadModelWriter;
+        _currentUser = currentUser;
     }
 
     public async Task<UpdateCardResult> Handle(UpdateCardCommand cmd, CancellationToken ct)
@@ -40,6 +44,11 @@ public sealed class UpdateCardHandler
 
         await _boardAccess.EnsureCanWriteBoardAsync(board.Id, ct);
 
+        if (!_currentUser.IsAuthenticated || _currentUser.UserId is null)
+        {
+            throw new InvalidOperationException("Текущий пользователь не определён.");
+        }
+
         var card = board.Cards.FirstOrDefault(c => c.Id == cmd.CardId);
         if (card is null)
         {
@@ -48,8 +57,7 @@ public sealed class UpdateCardHandler
 
         var now = DateTimeOffset.UtcNow;
 
-        card.Rename(cmd.Title, now);
-        card.ChangeDescription(cmd.Description, now);
+        card.UpdateDetails(cmd.Title, cmd.Description, _currentUser.UserId.Value, now);
 
         await _uow.SaveChangesAsync(ct);
         await _boardReadModelWriter.RefreshBoardAsync(board.Id, ct);
